@@ -486,3 +486,7 @@ ALTER TABLE TECHNICIEN MODIFY (ID_TECHNICIEN DEFAULT seq_id_technicien.NEXTVAL);
 /*==============================================================*/
 INSERT INTO EQUIPE (ID_EQUIPE, ADRESSE_EQUIPE, SOLDE_EQUIPE) 
 VALUES (seq_id_equipe.NEXTVAL, 'Nouvelle Adresse', 5000);
+INSERT INTO EQUIPE (ID_EQUIPE, ADRESSE_EQUIPE, SOLDE_EQUIPE) 
+VALUES (seq_id_equipe.NEXTVAL, 'Nouvelle Adresse', 5070);
+INSERT INTO EQUIPE (ID_EQUIPE, ADRESSE_EQUIPE, SOLDE_EQUIPE) 
+VALUES (seq_id_equipe.NEXTVAL, 'Nouvelle Adresse', 5007);
