@@ -293,10 +293,22 @@ create table LOT
    ID_LOT               INTEGER              not null,
    ID_STOCK             INTEGER              not null,
    DATE_LIVRAISON_LOT   DATE,
-   NB_plaque            INTEGER, 
+   NB_PLAQUE            INTEGER, 
    constraint PK_LOT primary key (ID_LOT),
-   CONSTRAINT check_nb_plaques CHECK (NB_plaque BETWEEN 80 AND 80)
+   CONSTRAINT check_nb_plaques CHECK (NB_plaque = 80)
 );
+-- Trigger nombre de plaques par lot : Erreur si le nombre de plaques dans un lot n'est pas égal à 80 
+CREATE OR REPLACE TRIGGER check_nb_plaques_lot
+BEFORE INSERT ON LOT
+FOR EACH ROW
+DECLARE
+BEGIN
+    IF :NEW.NB_PLAQUE != 80 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Le nombre de plaque par lot doit être égal à 80.');
+    END IF;
+END;
+/
+
 
 /*==============================================================*/
 /* Index : STOCKER_FK                                           */
@@ -312,11 +324,22 @@ create table PLAQUE
 (
    ID_PLAQUE            INTEGER              not null,
    ID_LOT               INTEGER              not null,
-   TYPE_PLAQUE          VARCHAR2(4),
+   TYPE_PLAQUE          INTEGER,
    NB_EXPERIENCE_PLAQUE INTEGER,
    ETAT_PLAQUE          VARCHAR2(25),
    constraint PK_PLAQUE primary key (ID_PLAQUE)
 );
+-- Trigger nombre de slots par plaque : Erreur si le nombre de slots par plaque ne vaut pas 96 ou 384
+CREATE OR REPLACE TRIGGER check_type_plaque
+BEFORE INSERT ON PLAQUE
+FOR EACH ROW
+DECLARE
+BEGIN
+    IF :NEW.TYPE_PLAQUE != 96 OR 384 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Le nombre de slots par plaque doit être de 96 ou 384.');
+    END IF;
+END;
+/
 
 /*==============================================================*/
 /* Index : PROVENIR_FK                                          */
