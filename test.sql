@@ -24,12 +24,23 @@ alter table GROUPESLOT
    drop constraint FK_GROUPESL_REGROUPER_EXPERIEN;
 alter table LOT
    drop constraint FK_LOT_STOCKER_STOCK;
+alter table LOT 
+    drop CONSTRAINT check_nb_plaques;
 alter table PLAQUE
    drop constraint FK_PLAQUE_PROVENIR_LOT;
 alter table SLOT
    drop constraint FK_SLOT_ASSEMBLER_GROUPESL;
 alter table TECHNICIEN
    drop constraint FK_TECHNICI_APPARTENI_EQUIPE;
+ALTER TABLE EXPERIENCE 
+    DROP CONSTRAINT check_duree;  
+ALTER TABLE EXPERIENCE    
+    DROP CONSTRAINT check_biais3; 
+ALTER TABLE EXPERIENCE
+    DROP CONSTRAINT check_biais1; 
+ALTER TABLE EXPERIENCE
+    DROP CONSTRAINT check_biais2;
+
 drop index ACHETER2_FK;
 drop index ACHETER_FK;
 drop table ACHETER cascade constraints;
@@ -152,15 +163,24 @@ create table EXPERIENCE
    FREQUENCE_EXPERIENCE INTEGER,
    REPROGR_MAX_EXPERIENCE INTEGER,
    COEFF_PRIX_PRIO_EXPERIENCE INTEGER,
-   VALEUR_BIAIS_A1      INTEGER,
-   VALEUR_BIAIS_A2      INTEGER,
+   VALEUR_BIAIS_A1      FLOAT,
+   VALEUR_BIAIS_A2      FLOAT,
    VALEUR_BAIS_A3       INTEGER,
    MOYENNE_EXPERIENCE   INTEGER,
    ECART_TYPE_EXPERIENCE INTEGER,
    NB_RENOUVELLEMENT_EXPERIENCE INTEGER,
    constraint PK_EXPERIENCE primary key (ID_EXPERIENCE),
-   CONSTRAINT check_duree CHECK (DUREE_EXPERIENCE > 0 )
+   CONSTRAINT check_duree CHECK (DUREE_EXPERIENCE > 0 ),
+   CONSTRAINT check_biais3 CHECK (VALEUR_BIAIS_A3 BETWEEN O AND 1 ),
+   CONSTRAINT check_biais1 CHECK (VALEUR_BIAIS_A1 > 0.0 ),
+   CONSTRAINT check_biais2 CHECK (VALEUR_BIAIS_A2 > 0.0 )
 );
+
+
+
+
+
+
 
 /*==============================================================*/
 /* Index : REALISER_FK                                          */
