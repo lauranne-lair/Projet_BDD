@@ -70,6 +70,8 @@ drop table STOCK cascade constraints;
 drop index APPARTENIR_FK;
 drop table TECHNICIEN cascade constraints;
 
+drop trigger T_check_valeur_biais2;
+
 /*==============================================================*/
 /* Table : ACHETER                                              */
 /*==============================================================*/
@@ -189,6 +191,21 @@ BEGIN
 END;
 /
 
+-- Trigger Valeur de biais A1 doit être inférieur ou égal à A2
+CREATE OR REPLACE TRIGGER T_check_valeur_biais2
+BEFORE INSERT OR UPDATE ON EXPERIENCE
+FOR EACH ROW 
+DECLARE
+    A1 FLOAT;
+BEGIN
+    SELECT VALEUR_BIAIS_A1 INTO A1 FROM EXPERIENCE; 
+    IF :NEW.VALEUR_BIAIS_A2 < A1 THEN 
+        RAISE_APPLICATION_ERROR(-20001, 'La valeur de biais a2 ne peut pas être inférieure à a1');
+    END IF;
+END; 
+/
+
+    
 
 
 
