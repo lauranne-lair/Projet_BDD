@@ -175,6 +175,19 @@ create table EXPERIENCE
    CONSTRAINT check_biais1 CHECK (VALEUR_BIAIS_A1 > 0.0 ),
    CONSTRAINT check_biais2 CHECK (VALEUR_BIAIS_A2 > 0.0 )
 );
+-- Trigger Duree_Experience : Erreur si la durée n'est pas positive
+CREATE OR REPLACE TRIGGER check_duree_positive
+BEFORE INSERT ON EXPERIENCE
+FOR EACH ROW
+DECLARE
+    DUREE INTEGER;
+BEGIN
+    DUREE := :NEW.FIN_EXPERIENCE - :NEW.DEB_EXPERIENCE;
+    IF DUREE < 0 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'La durée ne doit pas être négative.');
+    END IF;
+END;
+/
 
 
 
