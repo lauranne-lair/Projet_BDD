@@ -2,8 +2,6 @@
 /* Nom de SGBD :  ORACLE Version 11g                            */
 /* Date de création :  15/03/2024 08:29:11                      */
 /*==============================================================*/
-
-
 alter table ACHETER
    drop constraint FK_ACHETER_ACHETER_FOURNISS;
 alter table ACHETER
@@ -14,7 +12,6 @@ alter table CHERCHEUR
    drop constraint FK_CHERCHEU_DESIGNER_EQUIPE;
 alter table EXPERIENCE
    drop constraint FK_EXPERIEN_ASSOCIATI_LISTEATT;
-
 alter table EXPERIENCE
    drop constraint FK_EXPERIEN_COMMANDER_CHERCHEU;
 alter table EXPERIENCE
@@ -161,7 +158,8 @@ create table EXPERIENCE
    MOYENNE_EXPERIENCE   INTEGER,
    ECART_TYPE_EXPERIENCE INTEGER,
    NB_RENOUVELLEMENT_EXPERIENCE INTEGER,
-   constraint PK_EXPERIENCE primary key (ID_EXPERIENCE)
+   constraint PK_EXPERIENCE primary key (ID_EXPERIENCE),
+   CONSTRAINT check_duree CHECK (DUREE_EXPERIENCE > 0 )
 );
 
 /*==============================================================*/
