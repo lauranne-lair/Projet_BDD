@@ -1,20 +1,35 @@
-drop trigger T_CHECK_DUREE_POSITIVE;
-drop trigger T_check_nb_plaques_lot;
-drop trigger T_check_type_plaque;
-drop trigger T_check_valeur_biais2;
-drop trigger T_check_nb_slots_groupe;
+DROP TRIGGER T_CHECK_DUREE_POSITIVE;
+DROP TRIGGER T_check_nb_plaques_lot;
+DROP TRIGGER T_check_type_plaque;
+DROP TRIGGER T_check_valeur_biais2;
+DROP TRIGGER T_check_nb_slots_groupe;
+DROP TRIGGER T_chek_valpos_ACHETER;
+DROP TRIGGER T_chek_valpos_APPAREIL;
+DROP TRIGGER T_chek_valpos_CHERCHEUR;
+DROP TRIGGER T_chek_valpos_EQUIPE;
+DROP TRIGGER T_chek_valpos_EXPERIENCE;
+DROP TRIGGER T_chek_valpos_FACTURE;
+DROP TRIGGER T_chek_valpos_FOURNISSEUR;
+DROP TRIGGER T_chek_valpos_GROUPESLOT;
+DROP TRIGGER T_chek_valpos_LISTEATTENTE;
+DROP TRIGGER T_chek_valpos_LOT;
+DROP TRIGGER T_chek_valpos_PLAQUE;
+DROP TRIGGER T_chek_valpos_SLOT;
+DROP TRIGGER T_chek_valpos_STOCK;
+DROP TRIGGER T_chek_valpos_TECHNICIEN;
 
-drop sequence seq_id_acheter;
-drop SEQUENCE seq_id_appareil;
-drop SEQUENCE seq_id_chercheur;
-drop SEQUENCE seq_id_equipe;
-drop SEQUENCE seq_id_experience;
-drop SEQUENCE seq_id_facture;
-drop SEQUENCE seq_id_groupeslot;
-drop SEQUENCE seq_id_lot;
-drop SEQUENCE seq_id_plaque;
-drop SEQUENCE seq_id_slot;
-drop SEQUENCE seq_id_technicien;
+
+DROP SEQUENCE seq_id_acheter;
+DROP SEQUENCE seq_id_appareil;
+DROP SEQUENCE seq_id_chercheur;
+DROP SEQUENCE seq_id_equipe;
+DROP SEQUENCE seq_id_experience;
+DROP SEQUENCE seq_id_facture;
+DROP SEQUENCE seq_id_groupeslot;
+DROP SEQUENCE seq_id_lot;
+DROP SEQUENCE seq_id_plaque;
+DROP SEQUENCE seq_id_slot;
+DROP SEQUENCE seq_id_technicien;
 
 -- Trigger Duree_Experience : Erreur si la durée n'est pas positive
 CREATE OR REPLACE TRIGGER T_check_duree_positive
@@ -90,6 +105,238 @@ BEGIN
     ) THEN
         RAISE_APPLICATION_ERROR(-20000, 'Chaque groupe de slots pour une même expérience doit avoir le même nombre de slots.');
     END IF;
+END;
+/
+
+
+-- Trigger pour avoir aucun nombre négatif dans les tables 
+-- Table acheter : 
+CREATE OR REPLACE TRIGGER T_chek_valpos_ACHETER
+BEFORE INSERT OR UPDATE ON ACHETER
+FOR EACH ROW
+DECLARE
+    negative_value EXCEPTION;
+BEGIN
+    IF :NEW.ID_FOURNISSEUR < 0 OR :NEW.ID_LOT < 0 THEN
+        RAISE negative_value;
+    END IF;
+EXCEPTION
+    WHEN negative_value THEN
+        RAISE_APPLICATION_ERROR (-20001, 'La valeur ne peut pas être négative dans la table ACHETER');
+END;
+/
+
+--
+--APPAREIL
+CREATE OR REPLACE TRIGGER T_chek_valpos_APPAREIL
+BEFORE INSERT OR UPDATE ON APPAREIL
+FOR EACH ROW
+DECLARE
+    negative_value EXCEPTION;
+BEGIN
+    IF :NEW.ID_APPAREIL < 0 OR :NEW.ID_LISTE < 0 OR :NEW.DISPO_APPAREIL < 0 OR :NEW.POSITION_APPAREIL < 0 THEN
+        RAISE negative_value;
+    END IF;
+EXCEPTION
+    WHEN negative_value THEN
+        RAISE_APPLICATION_ERROR (-20002, 'La valeur ne peut pas être négative dans la table APPAREIL');
+END;
+/
+
+--
+--CHERCHEUR 
+CREATE OR REPLACE TRIGGER T_chek_valpos_CHERCHEUR
+BEFORE INSERT OR UPDATE ON CHERCHEUR
+FOR EACH ROW
+DECLARE
+    negative_value EXCEPTION;
+BEGIN
+    IF :NEW.ID_CHERCHEUR < 0 OR :NEW.ID_EQUIPE < 0 THEN
+        RAISE negative_value;
+    END IF;
+EXCEPTION
+    WHEN negative_value THEN
+        RAISE_APPLICATION_ERROR (-20003, 'La valeur ne peut pas être négative dans la table CHERCHEUR');
+END;
+/
+
+--
+--EXPERIENCE
+CREATE OR REPLACE TRIGGER T_chek_valpos_EXPERIENCE
+BEFORE INSERT OR UPDATE ON EXPERIENCE
+FOR EACH ROW
+DECLARE
+    negative_value EXCEPTION;
+BEGIN
+    IF :NEW.ID_EXPERIENCE < 0 OR :NEW.ID_LISTE < 0 OR :NEW.ID_TECHNICIEN < 0 OR :NEW.ID_CHERCHEUR < 0 OR
+       :NEW.DUREE_EXPERIENCE < 0 OR :NEW.PRIORITE_EXPERIENCE < 0 OR :NEW.FREQUENCE_EXPERIENCE < 0 OR
+       :NEW.REPROGR_MAX_EXPERIENCE < 0 OR :NEW.COEFF_PRIX_PRIO_EXPERIENCE < 0 OR
+       :NEW.VALEUR_BIAIS_A1 < 0.0 OR :NEW.VALEUR_BIAIS_A2 < 0.0 OR
+       :NEW.VALEUR_BIAIS_A3 < 0.0 OR :NEW.MOYENNE_EXPERIENCE < 0 OR
+       :NEW.ECART_TYPE_EXPERIENCE < 0 OR :NEW.NB_RENOUVELLEMENT_EXPERIENCE < 0 THEN
+        RAISE negative_value;
+    END IF;
+EXCEPTION
+    WHEN negative_value THEN
+        RAISE_APPLICATION_ERROR (-20005, 'La valeur ne peut pas être négative dans la table EXPERIENCE');
+END;
+/
+
+--
+--FACTURE
+CREATE OR REPLACE TRIGGER T_chek_valpos_FACTURE
+BEFORE INSERT OR UPDATE ON FACTURE
+FOR EACH ROW
+DECLARE
+    negative_value EXCEPTION;
+BEGIN
+    IF :NEW.ID_FACTURE < 0 OR :NEW.ID_EQUIPE < 0 OR :NEW.MONTANT_FACTURE < 0 THEN
+        RAISE negative_value;
+    END IF;
+EXCEPTION
+    WHEN negative_value THEN
+        RAISE_APPLICATION_ERROR (-20006, 'La valeur ne peut pas être négative dans la table FACTURE');
+END;
+/
+
+--
+--FOURNISSEUR
+CREATE OR REPLACE TRIGGER T_chek_valpos_FOURNISSEUR
+BEFORE INSERT OR UPDATE ON FOURNISSEUR
+FOR EACH ROW
+DECLARE
+    negative_value EXCEPTION;
+BEGIN
+    IF :NEW.ID_FOURNISSEUR < 0 THEN
+        RAISE negative_value;
+    END IF;
+EXCEPTION
+    WHEN negative_value THEN
+        RAISE_APPLICATION_ERROR (-20007, 'La valeur ne peut pas être négative dans la table FOURNISSEUR');
+END;
+/
+
+--
+--GROUPESLOT
+CREATE OR REPLACE TRIGGER T_chek_valpos_GROUPESLOT
+BEFORE INSERT OR UPDATE ON GROUPESLOT
+FOR EACH ROW
+DECLARE
+    negative_value EXCEPTION;
+BEGIN
+    IF :NEW.ID_GROUPE < 0 OR :NEW.ID_EXPERIENCE < 0 OR :NEW.ID_PLAQUE < 0 OR
+       :NEW.MOYENNE_GROUPE < 0 OR :NEW.ECART_TYPE_GROUPE < 0 OR :NEW.VALIDITE_GROUPE < 0 THEN
+        RAISE negative_value;
+    END IF;
+EXCEPTION
+    WHEN negative_value THEN
+        RAISE_APPLICATION_ERROR (-20008, 'La valeur ne peut pas être négative dans la table GROUPESLOT');
+END;
+/
+
+--
+--LISTEATTENTE
+CREATE OR REPLACE TRIGGER T_chek_valpos_LISTEATTENTE
+BEFORE INSERT OR UPDATE ON LISTEATTENTE
+FOR EACH ROW
+DECLARE
+    negative_value EXCEPTION;
+BEGIN
+    IF :NEW.ID_LISTE < 0 OR :NEW.NB_EXP_ATTENTE < 0 OR :NEW.EXPERIENCE < 0 OR :NEW.NB_EXP_DOUBLE < 0 THEN
+        RAISE negative_value;
+    END IF;
+EXCEPTION
+    WHEN negative_value THEN
+        RAISE_APPLICATION_ERROR (-20009, 'La valeur ne peut pas être négative dans la table LISTEATTENTE');
+END;
+/
+
+--
+--LOT
+CREATE OR REPLACE TRIGGER T_chek_valpos_LOT
+BEFORE INSERT OR UPDATE ON LOT
+FOR EACH ROW
+DECLARE
+    negative_value EXCEPTION;
+BEGIN
+    IF :NEW.ID_LOT < 0 OR :NEW.ID_STOCK < 0 OR :NEW.NB_PLAQUE < 0 THEN
+        RAISE negative_value;
+    END IF;
+EXCEPTION
+    WHEN negative_value THEN
+        RAISE_APPLICATION_ERROR (-20010, 'La valeur ne peut pas être négative dans la table LOT');
+END;
+/
+
+--
+--PLAQUE
+CREATE OR REPLACE TRIGGER T_chek_valpos_PLAQUE
+BEFORE INSERT OR UPDATE ON PLAQUE
+FOR EACH ROW
+DECLARE
+    negative_value EXCEPTION;
+BEGIN
+    IF :NEW.ID_PLAQUE < 0 OR :NEW.ID_LOT < 0 OR :NEW.TYPE_PLAQUE < 0 OR :NEW.NB_EXPERIENCE_PLAQUE < 0 THEN
+        RAISE negative_value;
+    END IF;
+EXCEPTION
+    WHEN negative_value THEN
+        RAISE_APPLICATION_ERROR (-20010, 'La valeur ne peut pas être négative dans la table PLAQUE');
+END;
+/
+
+--
+--SLOT
+CREATE OR REPLACE TRIGGER T_chek_valpos_SLOT
+BEFORE INSERT OR UPDATE ON SLOT
+FOR EACH ROW
+DECLARE
+    negative_value EXCEPTION;
+BEGIN
+    IF :NEW.ID_SLOT < 0 OR :NEW.ID_GROUPE < 0 OR :NEW.NUMERO_SLOT < 0 OR
+       :NEW.POSITION_X_SLOT < 0 OR :NEW.POSITION_Y_SLOT < 0 OR :NEW.RM_SLOT < 0 OR
+       :NEW.RD_SLOT < 0 OR :NEW.VM_SLOT < 0 OR :NEW.VD_SLOT < 0 OR
+       :NEW.BM_SLOT < 0 OR :NEW.BD_SLOT < 0 OR :NEW.TM_SLOT < 0 OR :NEW.TD_SLOT < 0 THEN
+        RAISE negative_value;
+    END IF;
+EXCEPTION
+    WHEN negative_value THEN
+        RAISE_APPLICATION_ERROR (-20011, 'La valeur ne peut pas être négative dans la table SLOT');
+END;
+/
+
+--
+--STOCK
+CREATE OR REPLACE TRIGGER T_chek_valpos_STOCK
+BEFORE INSERT OR UPDATE ON STOCK
+FOR EACH ROW
+DECLARE
+    negative_value EXCEPTION;
+BEGIN
+    IF :NEW.ID_STOCK < 0 OR :NEW.QUANTITE_P384 < 0 OR :NEW.QUANTITE_P96 < 0 OR
+       :NEW.VOL_DERNIER_TRI_P384 < 0 OR :NEW.VOL_DERNIER_TRI_P96 < 0 THEN
+        RAISE negative_value;
+    END IF;
+EXCEPTION
+    WHEN negative_value THEN
+        RAISE_APPLICATION_ERROR (-20012, 'La valeur ne peut pas être négative dans la table STOCK');
+END;
+/
+
+--
+--TECHNICIEN
+CREATE OR REPLACE TRIGGER T_chek_valpos_TECHNICIEN
+BEFORE INSERT OR UPDATE ON TECHNICIEN
+FOR EACH ROW
+DECLARE
+    negative_value EXCEPTION;
+BEGIN
+    IF :NEW.ID_TECHNICIEN < 0 OR :NEW.ID_EQUIPE < 0 THEN
+        RAISE negative_value;
+    END IF;
+EXCEPTION
+    WHEN negative_value THEN
+        RAISE_APPLICATION_ERROR (-20013, 'La valeur ne peut pas être négative dans la table TECHNICIEN');
 END;
 /
 
