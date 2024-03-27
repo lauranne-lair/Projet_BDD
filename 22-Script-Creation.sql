@@ -2,105 +2,74 @@
 /* Nom de SGBD :  ORACLE Version 11g                            */
 /* Date de création :  15/03/2024 08:29:11                      */
 /*==============================================================*/
-
-
 alter table ACHETER
    drop constraint FK_ACHETER_ACHETER_FOURNISS;
-
 alter table ACHETER
    drop constraint FK_ACHETER_ACHETER2_LOT;
-
 alter table APPAREIL
    drop constraint FK_APPAREIL_CONTENIR_LISTEATT;
-
 alter table CHERCHEUR
    drop constraint FK_CHERCHEU_DESIGNER_EQUIPE;
-
 alter table EXPERIENCE
    drop constraint FK_EXPERIEN_ASSOCIATI_LISTEATT;
-
 alter table EXPERIENCE
    drop constraint FK_EXPERIEN_COMMANDER_CHERCHEU;
-
 alter table EXPERIENCE
    drop constraint FK_EXPERIEN_REALISER_TECHNICI;
-
 alter table FACTURE
    drop constraint FK_FACTURE_PAYER_EQUIPE;
-
 alter table GROUPESLOT
    drop constraint FK_GROUPESL_POSSEDER_PLAQUE;
-
 alter table GROUPESLOT
    drop constraint FK_GROUPESL_REGROUPER_EXPERIEN;
-
 alter table LOT
    drop constraint FK_LOT_STOCKER_STOCK;
-
+alter table LOT 
+    drop CONSTRAINT check_nb_plaques;
 alter table PLAQUE
    drop constraint FK_PLAQUE_PROVENIR_LOT;
-
 alter table SLOT
    drop constraint FK_SLOT_ASSEMBLER_GROUPESL;
-
 alter table TECHNICIEN
    drop constraint FK_TECHNICI_APPARTENI_EQUIPE;
+ALTER TABLE EXPERIENCE 
+    DROP CONSTRAINT check_duree;  
+ALTER TABLE EXPERIENCE    
+    DROP CONSTRAINT check_biais3; 
+ALTER TABLE EXPERIENCE
+    DROP CONSTRAINT check_biais1; 
+ALTER TABLE EXPERIENCE
+    DROP CONSTRAINT check_biais2;
 
 drop index ACHETER2_FK;
-
 drop index ACHETER_FK;
-
 drop table ACHETER cascade constraints;
-
 drop index CONTENIR_FK;
-
 drop table APPAREIL cascade constraints;
-
 drop index DESIGNER_FK;
-
 drop table CHERCHEUR cascade constraints;
-
 drop table EQUIPE cascade constraints;
-
 drop index ASSOCIATION_13_FK;
-
 drop index COMMANDER_FK;
-
 drop index REALISER_FK;
-
 drop table EXPERIENCE cascade constraints;
-
 drop index PAYER_FK;
-
 drop table FACTURE cascade constraints;
-
 drop table FOURNISSEUR cascade constraints;
-
 drop index REGROUPER_FK;
-
 drop index POSSEDER_FK;
-
 drop table GROUPESLOT cascade constraints;
-
 drop table LISTEATTENTE cascade constraints;
-
 drop index STOCKER_FK;
-
 drop table LOT cascade constraints;
-
 drop index PROVENIR_FK;
-
 drop table PLAQUE cascade constraints;
-
 drop index ASSEMBLER_FK;
-
 drop table SLOT cascade constraints;
-
 drop table STOCK cascade constraints;
-
 drop index APPARTENIR_FK;
-
 drop table TECHNICIEN cascade constraints;
+
 
 /*==============================================================*/
 /* Table : ACHETER                                              */
@@ -133,7 +102,7 @@ create table APPAREIL
 (
    ID_APPAREIL          INTEGER              not null,
    ID_LISTE             INTEGER,
-   DISPO_APPAREIL       RAW(1),
+   DISPO_APPAREIL       INTEGER,
    POSITION_APPAREIL    INTEGER,
    constraint PK_APPAREIL primary key (ID_APPAREIL)
 );
@@ -195,15 +164,20 @@ create table EXPERIENCE
    FREQUENCE_EXPERIENCE INTEGER,
    REPROGR_MAX_EXPERIENCE INTEGER,
    COEFF_PRIX_PRIO_EXPERIENCE INTEGER,
-   VALEUR_BIAIS_A1      INTEGER,
-   VALEUR_BIAIS_A2      INTEGER,
-   VALEUR_BAIS_A3       INTEGER,
+   VALEUR_BIAIS_A1      FLOAT,
+   VALEUR_BIAIS_A2      FLOAT,
+   VALEUR_BIAIS_A3      FLOAT,
    MOYENNE_EXPERIENCE   INTEGER,
    ECART_TYPE_EXPERIENCE INTEGER,
    NB_RENOUVELLEMENT_EXPERIENCE INTEGER,
-   constraint PK_EXPERIENCE primary key (ID_EXPERIENCE)
+   constraint PK_EXPERIENCE primary key (ID_EXPERIENCE),
+   CONSTRAINT check_duree CHECK (DUREE_EXPERIENCE > 0 ),
+   CONSTRAINT check_biais3 CHECK (VALEUR_BIAIS_A3 BETWEEN 0.0 AND 1.0 ),
+   CONSTRAINT check_biais1 CHECK (VALEUR_BIAIS_A1 > 0.0 ),
+   CONSTRAINT check_biais2 CHECK (VALEUR_BIAIS_A2 > 0.0 )
 );
 
+    
 /*==============================================================*/
 /* Index : REALISER_FK                                          */
 /*==============================================================*/
@@ -264,7 +238,7 @@ create table GROUPESLOT
    ID_PLAQUE            INTEGER              not null,
    MOYENNE_GROUPE       INTEGER,
    ECART_TYPE_GROUPE    INTEGER,
-   VALIDITE_GROUPE      RAW(1),
+   VALIDITE_GROUPE      INTEGER,
    constraint PK_GROUPESLOT primary key (ID_GROUPE)
 );
 
@@ -302,7 +276,9 @@ create table LOT
    ID_LOT               INTEGER              not null,
    ID_STOCK             INTEGER              not null,
    DATE_LIVRAISON_LOT   DATE,
-   constraint PK_LOT primary key (ID_LOT)
+   NB_PLAQUE            INTEGER, 
+   constraint PK_LOT primary key (ID_LOT),
+   CONSTRAINT check_nb_plaques CHECK (NB_plaque = 80)
 );
 
 /*==============================================================*/
@@ -319,11 +295,12 @@ create table PLAQUE
 (
    ID_PLAQUE            INTEGER              not null,
    ID_LOT               INTEGER              not null,
-   TYPE_PLAQUE          VARCHAR2(4),
+   TYPE_PLAQUE          INTEGER,
    NB_EXPERIENCE_PLAQUE INTEGER,
    ETAT_PLAQUE          VARCHAR2(25),
    constraint PK_PLAQUE primary key (ID_PLAQUE)
 );
+
 
 /*==============================================================*/
 /* Index : PROVENIR_FK                                          */
@@ -450,43 +427,5 @@ alter table TECHNICIEN
       references EQUIPE (ID_EQUIPE);
 
 
-/*==============================================================*/
-/* Séquence pour l'autoincrémentation                                      */
-/*==============================================================*/
--- Création de séquences
-CREATE SEQUENCE seq_id_acheter START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE seq_id_appareil START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE seq_id_chercheur START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE seq_id_equipe START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE seq_id_experience START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE seq_id_facture START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE seq_id_groupeslot START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE seq_id_lot START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE seq_id_plaque START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE seq_id_slot START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE seq_id_technicien START WITH 1 INCREMENT BY 1;
 
-/*==============================================================*/
-/* Modification des tables pour utiliser les séquences                                        */
-/*==============================================================*/
-ALTER TABLE ACHETER MODIFY (ID_FOURNISSEUR DEFAULT seq_id_acheter.NEXTVAL);
-ALTER TABLE APPAREIL MODIFY (ID_APPAREIL DEFAULT seq_id_appareil.NEXTVAL);
-ALTER TABLE CHERCHEUR MODIFY (ID_CHERCHEUR DEFAULT seq_id_chercheur.NEXTVAL);
-ALTER TABLE EQUIPE MODIFY (ID_EQUIPE DEFAULT seq_id_equipe.NEXTVAL);
-ALTER TABLE EXPERIENCE MODIFY (ID_EXPERIENCE DEFAULT seq_id_experience.NEXTVAL);
-ALTER TABLE FACTURE MODIFY (ID_FACTURE DEFAULT seq_id_facture.NEXTVAL);
-ALTER TABLE GROUPESLOT MODIFY (ID_GROUPE DEFAULT seq_id_groupeslot.NEXTVAL);
-ALTER TABLE LOT MODIFY (ID_LOT DEFAULT seq_id_lot.NEXTVAL);
-ALTER TABLE PLAQUE MODIFY (ID_PLAQUE DEFAULT seq_id_plaque.NEXTVAL);
-ALTER TABLE SLOT MODIFY (ID_SLOT DEFAULT seq_id_slot.NEXTVAL);
-ALTER TABLE TECHNICIEN MODIFY (ID_TECHNICIEN DEFAULT seq_id_technicien.NEXTVAL);
-
-/*==============================================================*/
-/* TEST AJOUT EQUIPE      : ok                                  */
-/*==============================================================*/
-INSERT INTO EQUIPE (ID_EQUIPE, ADRESSE_EQUIPE, SOLDE_EQUIPE) 
-VALUES (seq_id_equipe.NEXTVAL, 'Nouvelle Adresse', 5000);
-INSERT INTO EQUIPE (ID_EQUIPE, ADRESSE_EQUIPE, SOLDE_EQUIPE) 
-VALUES (seq_id_equipe.NEXTVAL, 'Nouvelle Adresse', 5070);
-INSERT INTO EQUIPE (ID_EQUIPE, ADRESSE_EQUIPE, SOLDE_EQUIPE) 
-VALUES (seq_id_equipe.NEXTVAL, 'Nouvelle Adresse', 5007);
+Commit;
