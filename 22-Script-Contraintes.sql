@@ -2,6 +2,7 @@ drop trigger T_CHECK_DUREE_POSITIVE;
 drop trigger T_check_nb_plaques_lot;
 drop trigger T_check_type_plaque;
 drop trigger T_check_valeur_biais2;
+drop trigger T_check_nb_slots_groupe;
 
 drop sequence seq_id_acheter;
 drop SEQUENCE seq_id_appareil;
@@ -63,6 +64,31 @@ DECLARE
 BEGIN
     IF :NEW.TYPE_PLAQUE != 96 AND :NEW.TYPE_PLAQUE != 384 THEN
         RAISE_APPLICATION_ERROR(-20001, 'Le nombre de slots par plaque doit être de 96 ou 384.');
+    END IF;
+END;
+/
+
+CREATE OR REPLACE TRIGGER T_check_nb_slots_groupe
+BEFORE INSERT OR UPDATE ON GROUPESLOT
+FOR EACH ROW
+DECLARE
+    v_nb_slot INTEGER;
+BEGIN
+    -- Obtenir le nombre de slots pour ce groupe
+    SELECT COUNT(*)
+    INTO v_nb_slot
+    FROM SLOT
+    WHERE ID_GROUPE = :NEW.ID_GROUPE;
+
+    -- Vérifier si ce nombre de slots est différent du nombre de slots dans les autres groupes de cette expérience
+    IF v_nb_slot != (
+        SELECT COUNT(*)
+        FROM SLOT S
+        JOIN GROUPESLOT G ON S.ID_GROUPE = G.ID_GROUPE
+        WHERE G.ID_EXPERIENCE = :NEW.ID_EXPERIENCE
+        GROUP BY G.ID_EXPERIENCE
+    ) THEN
+        RAISE_APPLICATION_ERROR(-20000, 'Chaque groupe de slots pour une même expérience doit avoir le même nombre de slots.');
     END IF;
 END;
 /
