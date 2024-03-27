@@ -341,6 +341,24 @@ END;
 /
 
 
+// CONTRAINTE SUR LE PRIX DE L'EXPERIENCE
+CREATE OR REPLACE TRIGGER T_prix_experience
+BEFORE INSERT OR UPDATE ON EXPERIENCE
+FOR EACH ROW
+DECLARE
+    prix INTEGER;
+BEGIN
+    -- Calcul du prix de l'expérience selon la formule donnée
+    prix := :NEW.PRIORITE_EXPERIENCE * (:NEW.NB_RENOUVELLEMENT_EXPERIENCE + :NEW.FREQUENCE_EXPERIENCE) / :NEW.NB_RENOUVELLEMENT_EXPERIENCE;
+    
+    -- Vérification que le prix calculé est conforme à la contrainte
+    IF prix <> :NEW.PRIX_EXPERIENCE THEN
+        RAISE_APPLICATION_ERROR(-20014, 'Le prix de l''expérience doit être égal à (n+d)/n * la priorité de l''expérience.');
+    END IF;
+END;
+/
+
+
 /*==============================================================*/
 /* Séquence pour l'autoincrémentation                                      */
 /*==============================================================*/
