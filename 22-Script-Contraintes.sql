@@ -365,24 +365,7 @@ DECLARE
 BEGIN
 END;
 
-CREATE OR REPLACE TRIGGER T_rachat_stock
-AFTER INSERT ON PLAQUE
-FOR EACH ROW
-DECLARE
-    volume_utilise_trimestre NUMBER;
-    stock_actuel NUMBER;
-BEGIN
-    -- Calcul du volume utilisé ce trimestre
-    SELECT SUM(NB_EXPERIENCE_PLAQUE) INTO volume_utilise_trimestre
-    FROM PLAQUE
-    WHERE ID_LOT IN (
-        SELECT ID_LOT FROM LOT WHERE DATE_LIVRAISON_LOT >= TRUNC(ADD_MONTHS(SYSDATE, -3), 'Q') AND DATE_LIVRAISON_LOT < TRUNC(SYSDATE, 'Q')
-    );
 
-    -- Calcul du stock actuel de plaques
-    SELECT SUM(NB_PLAQUE) INTO stock_actuel FROM LOT;
-END;
-/
 
 
 /*==============================================================*/
