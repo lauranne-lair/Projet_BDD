@@ -358,6 +358,12 @@ BEGIN
 END;
 /
 
+CREATE OR REPLACE TRIGGER T_panne_app
+BEFORE INSERT OR UPDATE ON APPAREIL
+FOR EACH ROW
+DECLARE
+BEGIN
+END;
 
 /*==============================================================*/
 /* Séquence pour l'autoincrémentation                                      */
