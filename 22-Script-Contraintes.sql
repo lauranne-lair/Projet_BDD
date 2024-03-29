@@ -356,7 +356,7 @@ CREATE OR REPLACE TRIGGER T_panne_app
 AFTER UPDATE OF ETAT_APPAREIL ON APPAREIL
 FOR EACH ROW
 BEGIN
-    IF :OLD.ETAT_APPAREIL <> 'En panne' AND :NEW_APPAREIL = 'En panne' THEN
+    IF :OLD.ETAT_APPAREIL <> 'En panne' AND :NEW.ETAT_APPAREIL = 'En panne' THEN
         UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'A programmer'
         WHERE ID_APPAREIL = :NEW.ID_APPAREIL
         AND ETAT_EXPERIENCE <> 'A programmer';
@@ -368,7 +368,7 @@ END;
 
 
 /*==============================================================*/
-/* Séquence pour l'autoincrémentation                                      */
+/* Séquence pour l'autoincrémentation                           */
 /*==============================================================*/
 -- Création de séquences
 CREATE SEQUENCE seq_id_acheter START WITH 1 INCREMENT BY 1;

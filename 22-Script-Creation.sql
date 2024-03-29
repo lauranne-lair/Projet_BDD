@@ -102,7 +102,7 @@ create table APPAREIL
 (
    ID_APPAREIL          INTEGER              not null,
    ID_LISTE             INTEGER,
-   DISPO_APPAREIL       INTEGER,
+   ETAT_APPAREIL        VARCHAR2(10),
    POSITION_APPAREIL    INTEGER,
    constraint PK_APPAREIL primary key (ID_APPAREIL)
 );
