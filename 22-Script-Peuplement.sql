@@ -1,5 +1,5 @@
 /*==============================================================*/
-/* TEST AJOUT EQUIPE      : ok                                  */
+/* TEST AJOUT EQUIPE      : ok          hhh                        */
 /*==============================================================*/
 /*INSERT INTO EQUIPE (ID_EQUIPE, ADRESSE_EQUIPE, SOLDE_EQUIPE) 
 VALUES (seq_id_equipe.NEXTVAL, 'Nouvelle Adresse', 5000);
