@@ -72,22 +72,12 @@ END;
 
 
 -- Trigger nombre de slots par plaque : Erreur si le nombre de slots par plaque ne vaut pas 96 ou 384
-CREATE OR REPLACE TRIGGER T_check_type_plaque
-BEFORE INSERT ON PLAQUE
-FOR EACH ROW
-DECLARE
-BEGIN
-    IF :NEW.TYPE_PLAQUE != 96 AND :NEW.TYPE_PLAQUE != 384 THEN
-        RAISE_APPLICATION_ERROR(-20001, 'Le nombre de slots par plaque doit être de 96 ou 384.');
-    END IF;
-END;
-/
-
 CREATE OR REPLACE TRIGGER T_check_nb_slots_groupe
 BEFORE INSERT OR UPDATE ON GROUPESLOT
 FOR EACH ROW
 DECLARE
     v_nb_slot INTEGER;
+    v_nb_slot_other INTEGER;
 BEGIN
     -- Obtenir le nombre de slots pour ce groupe
     SELECT COUNT(*)
@@ -95,18 +85,21 @@ BEGIN
     FROM SLOT
     WHERE ID_GROUPE = :NEW.ID_GROUPE;
 
+    -- Obtenir le nombre de slots dans les autres groupes de la même expérience
+    SELECT COUNT(*)
+    INTO v_nb_slot_other
+    FROM GROUPESLOT
+    WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE
+      AND :NEW.ID_GROUPE <> ID_GROUPE;
+
     -- Vérifier si ce nombre de slots est différent du nombre de slots dans les autres groupes de cette expérience
-    IF v_nb_slot != (
-        SELECT COUNT(*)
-        FROM SLOT S
-        JOIN GROUPESLOT G ON S.ID_GROUPE = G.ID_GROUPE
-        WHERE G.ID_EXPERIENCE = :NEW.ID_EXPERIENCE
-        GROUP BY G.ID_EXPERIENCE
-    ) THEN
+    IF v_nb_slot != v_nb_slot_other THEN
         RAISE_APPLICATION_ERROR(-20000, 'Chaque groupe de slots pour une même expérience doit avoir le même nombre de slots.');
     END IF;
 END;
 /
+
+
 
 
 -- Trigger pour avoir aucun nombre négatif dans les tables 
@@ -358,6 +351,7 @@ BEGIN
 END;
 /
 
+//Contrainte sur le changement d'état des expériences lorsque l'appareil est en panne
 CREATE OR REPLACE TRIGGER T_panne_app
 AFTER UPDATE OF ETAT_APPAREIL ON APPAREIL
 FOR EACH ROW
