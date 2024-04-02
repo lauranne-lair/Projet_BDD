@@ -374,7 +374,28 @@ END;
 /
 
 
+--Triger d'automatisation pour les expériences :
+/*Quand une epérience est lancée par un chercheur (insert), le tehcnicien update son statut et le groupe de slot ainsi que les slots se remplisse automatiquement
+Appareil fait update sur le slot qui va faire un update sur le groupe de slots qui va faire un update sur l'expérience (statut = valide ou pas ?) 
+donc on doit pas faire les procédures de peuplement des groupes de slots et des slots
+*/
+CREATE OR REPLACE TRIGGER T_lancement_experience
+AFTER UPDATE OF ETAT_EXPERIENCE ON EXPERIENCE
+FOR EACH ROW
+BEGIN
+    FOR i IN 1..NB_GROUPE_SLOT_EXPERIENCE LOOP
+        SELECT ID_EXPERIENCE INTO ID_EXPERIENCE_GROUPE FROM EXPERIENCE;
+        INSERT INTO GROUPESLOT(ID_EXPERIENCE) VALUES (ID_EXPERIENCE_GROUPE);
+    END LOOP;
+END;
+/
 
+CREATE OR REPLACE TRIGGER T_slot_par_groupe
+AFTER 
+FOR EACH ROW
+BEGIN
+END;
+/
 
 /*==============================================================*/
 /* Séquence pour l'autoincrémentation                           */

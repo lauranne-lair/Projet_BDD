@@ -1,4 +1,4 @@
-/*==============================================================*/
+ /*==============================================================*/
 /* TEST AJOUT EQUIPE      : ok          hhh                        */
 /*==============================================================*/
 /*INSERT INTO EQUIPE (ID_EQUIPE, ADRESSE_EQUIPE, SOLDE_EQUIPE) 
@@ -13,6 +13,7 @@ VALUES (seq_id_equipe.NEXTVAL, 'Nouvelle Adresse', 5007);*/
 /* Peuplement des tables                                        */
 /*==============================================================*/
 -- FOURNISEUR 
+<<<<<<< HEAD
 CREATE OR REPLACE PROCEDURE peupler_table_fournisseur AS
 BEGIN
     DELETE FROM FOURNISSEUR;
@@ -25,6 +26,10 @@ EXCEPTION
         RAISE;
 END peupler_table_fournisseur;
 /
+=======
+INSERT INTO FOURNISSEUR (ID_FOURNISSEUR, NOM_FOURNISSEUR) VALUES (1, 'Pfizer');
+INSERT INTO FOURNISSEUR (ID_FOURNISSEUR, NOM_FOURNISSEUR) VALUES (2, 'Siemens');
+>>>>>>> 27b134b37b8832306bfe87ed1ecbf30eed5c474e
 
 --STOCK
 CREATE OR REPLACE PROCEDURE peupler_table_stock AS
@@ -40,7 +45,7 @@ END;
 --LOT
 CREATE OR REPLACE PROCEDURE peupler_table_lot AS
 BEGIN
-    FOR i IN 1..10 LOOP -- Créer 10 lots
+    FOR i IN 1..10 LOOP 
         INSERT INTO lot (id_lot, id_stock, date_livraison_lot, nb_plaque)
         VALUES (i, ROUND(DBMS_RANDOM.VALUE(1, 10)), SYSDATE - i, 80); 
     END LOOP;
@@ -50,6 +55,7 @@ END;
 
 --ACHETER
 INSERT INTO ACHETER (ID_FOURNISSEUR, ID_LOT) VALUES (1, 1);
+INSERT INTO ACHETER (ID_FOURNISSEUR, ID_LOT) VALUES (2, 2);
 
 --EQUIPE
 INSERT INTO EQUIPE_RECHERCHE  (ID_EQUIPE, ADRESSE_EQUIPE, SOLDE_EQUIPE)  
@@ -90,7 +96,7 @@ END;
 EXEC PEUPLE_CHERCHEUR(10);
 
 
--- PEUPLE FACTURE
+-- FACTURE
 CREATE OR REPLACE PROCEDURE PEUPLE_FACTURE(nb_lignes IN NUMBER) DETERMINISTIC AS 
     id_equipe FACTURE.ID_EQUIPE%TYPE; 
 BEGIN 
@@ -105,7 +111,30 @@ END;
 EXEC PEUPLE_FACTURE(10);
 
 --TECHNICIEN
-INSERT INTO TECHNICIEN (ID_TECHNICIEN, ID_EQUIPE, NOM_TECHNICIEN, PRENOM_TECHNICIEN) VALUES (1, 1, 'NomTechnicien', 'PrenomTechnicien');
+CREATE OR REPLACE PROCEDURE peuple_technicien(nb_lignes IN NUMBER) DETERMINISTIC AS
+    id_technicien TECHNICIEN.ID_TECHNICIEN%TYPE;
+    id_equipe TECHNICIEN.ID_EQUIPE%TYPE;
+    nom_technicien TECHNICIEN.NOM_TECHNICIEN%TYPE;
+    prenom_technicien TECHNICIEN.PRENOM_TECHNICIEN%TYPE;
+BEGIN
+    FOR i IN 1..nb_lignes LOOP
+        id_technicien := i;
+
+        SELECT ID_EQUIPE INTO id_equipe
+        FROM EQUIPE
+        WHERE ROWNUM = 1
+        ORDER BY DBMS_RANDOM.VALUE;
+
+        nom_technicien := 'Technicien' || i;
+        prenom_technicien := 'Prénom' || i;
+
+        -- Insertion des valeurs générées dans la table TECHNICIEN
+        INSERT INTO TECHNICIEN (ID_TECHNICIEN, ID_EQUIPE, NOM_TECHNICIEN, PRENOM_TECHNICIEN)
+        VALUES (id_technicien, id_equipe, nom_technicien, prenom_technicien);
+    END LOOP;
+    COMMIT; 
+END;
+/
 
 --APPAREIL
 INSERT INTO APPAREIL (ID_APPAREIL, ID_LISTE, ETAT_APPAREIL, POSITION_APPAREIL) VALUES (seq_id_appareil.NEXTVAL, 1, 'Disponible', 1);
