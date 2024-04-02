@@ -126,15 +126,25 @@ BEFORE INSERT OR UPDATE ON APPAREIL
 FOR EACH ROW
 DECLARE
     negative_value EXCEPTION;
+    appareil_non_disponible EXCEPTION;
 BEGIN
-    IF :NEW.ID_APPAREIL < 0 OR :NEW.ID_LISTE < 0 OR :NEW.DISPO_APPAREIL < 0 OR :NEW.POSITION_APPAREIL < 0 THEN
+    IF :NEW.ID_APPAREIL < 0 OR :NEW.ID_LISTE < 0 OR :NEW.POSITION_APPAREIL < 0 THEN
         RAISE negative_value;
     END IF;
+
+    -- Vérifier si l'appareil n'est pas disponible
+    IF :NEW.ETAT_APPAREIL != 'Disponible' THEN
+        RAISE appareil_non_disponible;
+    END IF;
+
 EXCEPTION
     WHEN negative_value THEN
         RAISE_APPLICATION_ERROR (-20002, 'La valeur ne peut pas être négative dans la table APPAREIL');
+    WHEN appareil_non_disponible THEN
+        RAISE_APPLICATION_ERROR (-20003, 'L''appareil n''est pas disponible');
 END;
 /
+
 
 --
 --CHERCHEUR 
@@ -344,12 +354,11 @@ BEGIN
     -- Calcul du prix de l'expérience selon la formule donnée
     prix := :NEW.PRIORITE_EXPERIENCE * (:NEW.NB_RENOUVELLEMENT_EXPERIENCE + :NEW.FREQUENCE_EXPERIENCE) / :NEW.NB_RENOUVELLEMENT_EXPERIENCE;
     
-    -- Vérification que le prix calculé est conforme à la contrainte
-    IF prix <> :NEW.PRIX_EXPERIENCE THEN
-        RAISE_APPLICATION_ERROR(-20014, 'Le prix de l''expérience doit être égal à (n+d)/n * la priorité de l''expérience.');
-    END IF;
+    -- Affichage du prix calculé (facultatif)
+    DBMS_OUTPUT.PUT_LINE('Le prix calculé de l''expérience est : ' || prix);
 END;
 /
+
 
 //Contrainte sur le changement d'état des expériences lorsque l'appareil est en panne
 CREATE OR REPLACE TRIGGER T_panne_app
