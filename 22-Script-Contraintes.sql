@@ -1,5 +1,3 @@
-DROP TRIGGER T_CHECK_DUREE_POSITIVE;
-DROP TRIGGER T_check_nb_plaques_lot;
 DROP TRIGGER T_check_type_plaque;
 DROP TRIGGER T_check_valeur_biais2;
 DROP TRIGGER T_check_nb_slots_groupe;
@@ -31,20 +29,6 @@ DROP SEQUENCE seq_id_plaque;
 DROP SEQUENCE seq_id_slot;
 DROP SEQUENCE seq_id_technicien;
 
--- Trigger Duree_Experience : Erreur si la durée n'est pas positive
-CREATE OR REPLACE TRIGGER T_check_duree_positive
-BEFORE INSERT ON EXPERIENCE
-FOR EACH ROW
-DECLARE
-    DUREE INTEGER;
-BEGIN
-    DUREE := :NEW.FIN_EXPERIENCE - :NEW.DEB_EXPERIENCE;
-    IF DUREE < 0 THEN
-        RAISE_APPLICATION_ERROR(-20001, 'La durée ne doit pas être négative.');
-    END IF;
-END;
-/
-
 -- Trigger Valeur de biais A1 doit être inférieur ou égal à A2
 CREATE OR REPLACE TRIGGER T_check_valeur_biais2
 BEFORE INSERT OR UPDATE ON EXPERIENCE
@@ -58,17 +42,6 @@ END;
 /
 
 
--- Trigger nombre de plaques par lot : Erreur si le nombre de plaques dans un lot n'est pas égal à 80 
-CREATE OR REPLACE TRIGGER T_check_nb_plaques_lot
-BEFORE INSERT ON LOT
-FOR EACH ROW
-DECLARE
-BEGIN
-    IF :NEW.NB_PLAQUE != 80 THEN
-        RAISE_APPLICATION_ERROR(-20001, 'Le nombre de plaque par lot doit être égal à 80.');
-    END IF;
-END;
-/
 
 
 -- Trigger nombre de slots par plaque : Erreur si le nombre de slots par plaque ne vaut pas 96 ou 384
@@ -383,6 +356,38 @@ BEGIN
     SELECT SUM(NB_PLAQUE) INTO stock_actuel FROM LOT;
 END;
 /
+
+
+CREATE OR REPLACE TRIGGER refus_plaque_trigger
+AFTER INSERT ON T_refus_plaque
+FOR EACH ROW
+DECLARE
+    v_experience_id NUMBER;
+BEGIN
+    -- Récupérer l'identifiant de l'expérience associée au refus
+    v_experience_id := :NEW.experience_id;
+
+      -- Simuler un refus de plaque ou de groupe en mettant à jour le statut de l'expérience
+  UPDATE EXPERIENCE
+  SET statut = 'Echoué'
+  WHERE  val_id_plaque= val_id_exp;
+
+  -- Ajouter l'expérience à renouveler
+  INSERT INTO LISTEATTENTE()
+  VALUES (val_id_exp);
+
+    -- Commit pour valider les changements
+    COMMIT;
+EXCEPTION
+    -- Gérer les exceptions
+    WHEN OTHERS THEN
+        -- Afficher l'erreur
+        DBMS_OUTPUT.PUT_LINE('Erreur : ' || SQLERRM);
+        -- Rollback pour annuler les changements en cas d'erreur
+        ROLLBACK;
+END;
+/
+
 
 
 /*==============================================================*/
