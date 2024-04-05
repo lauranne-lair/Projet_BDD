@@ -358,8 +358,18 @@ AFTER UPDATE OF ETAT_EXPERIENCE ON EXPERIENCE
 FOR EACH ROW
 BEGIN
     FOR i IN 1..NB_GROUPE_SLOT_EXPERIENCE LOOP
-        SELECT ID_EXPERIENCE INTO ID_EXPERIENCE_GROUPE FROM EXPERIENCE;
-        --SELECT ID_PLAQUE INTO ID_PLAQUE_GROUPE FROM PLAQUE WHERE 
+        SELECT ID_PLAQUE INTO ID_PLAQUE_EXP FROM PLAQUE WHERE :NEW
+        
+        SELECT p.ID_PLAQUE, p.TYPE_PLAQUE 
+        INTO ID_PLAQUE_GROUPE, TYPE_PLAQUE_GROUPE 
+        FROM PLAQUE p 
+        JOIN PLAQUELOT pl ON p.ID_LOT = pl.ID_LOT 
+        JOIN STOCK s ON pl.ID_STOCK = s.ID_STOCK 
+        WHERE (p.TYPE_PLAQUE = 384 AND s.Quantite_P384 != 0)
+        OR (p.TYPE_PLAQUE = 96 AND s.Quantite_P96 != 0); -- On vérifie si le stock n'est pas à zéro selon le type de plaque nécessaire pour l'expérience
+        
+
+        IF 
         -- mettre à jour les stocks en enlevant 1 au stock de la plaque au nombre de puits correspondant si elle est nouvelle
         INSERT INTO GROUPESLOT(ID_EXPERIENCE, ID_PLAQUE) VALUES (ID_EXPERIENCE_GROUPE, ID_PLAQUE_GROUPE);
         -- attribuer une plaque et vérifier si le nombre de groupe de slots qu'on rajoute rentre dans la plaque selon son type (96 ou 384 puits)

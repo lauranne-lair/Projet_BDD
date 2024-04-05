@@ -276,9 +276,10 @@ create table LISTEATTENTE
 create table LOT 
 (
    ID_LOT               INTEGER              not null,
-ID_STOCK             INTEGER              not null,
+   ID_STOCK             INTEGER              not null,
    DATE_LIVRAISON_LOT   DATE,
-   NB_PLAQUE            INTEGER, 
+   NB_PLAQUE            INTEGER,
+   TYPE_PLAQUE_LOT      INTEGER,
    constraint PK_LOT primary key (ID_LOT),
    CONSTRAINT check_nb_plaques CHECK (NB_plaque = 80)
 );
