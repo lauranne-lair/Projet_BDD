@@ -386,28 +386,28 @@ FOR EACH ROW
 BEGIN
     FOR i IN 1..NB_GROUPE_SLOT_EXPERIENCE LOOP
         SELECT ID_EXPERIENCE INTO ID_EXPERIENCE_GROUPE FROM EXPERIENCE;
-        SELECT ID_PLAQUE INTO ID_PLAQUE_GROUPE FROM PLAQUE WHERE 
+        --SELECT ID_PLAQUE INTO ID_PLAQUE_GROUPE FROM PLAQUE WHERE 
+        -- mettre à jour les stocks en enlevant 1 au stock de la plaque au nombre de puits correspondant si elle est nouvelle
         INSERT INTO GROUPESLOT(ID_EXPERIENCE, ID_PLAQUE) VALUES (ID_EXPERIENCE_GROUPE, ID_PLAQUE_GROUPE);
-        --attribuer une plaque et vérifier si le nombre de groupe de slots qu'on rajoute rentre dans la plaque selon type
+        -- attribuer une plaque et vérifier si le nombre de groupe de slots qu'on rajoute rentre dans la plaque selon son type (96 ou 384 puits)
+        SELECT NB_SLOTS_PAR_GROUPE_EXPERIENCE INTO NB_SLOTS_PAR_GROUPE FROM EXPERIENCE;
+        FOR i in 1..NB_SLOTS_PAR_GROUPE LOOP
+            SELECT ID_GROUPE INTO ID_GROUPE_SLOT FROM GROUPESLOT;
+            INSERT INTO SLOT(ID_GROUPE) VALUES (ID_GROUPE_SLOT);
+            -- enregistrer chaque slot avec un identifiant et une position dans la plaque
+        END LOOP;
     END LOOP;
 END;
 /
 
-CREATE OR REPLACE TRIGGER T_slot_par_groupe
-AFTER INSERT OR UPDATE ON GROUPESLOT
-BEGIN
-    FOR i in 1..3 LOOP
-        SELECT ID_GROUPE INTO ID_GROUPE_SLOT FROM GROUPESLOT;
-        INSERT INTO SLOT(ID_GROUPE) VALUES (ID_GROUPE_SLOT);
-    END LOOP;
-END;
-/
 
-CREATE OR REPLACE TRIGGER T_validation_slot
---AFTER UPDATE OF ... ON SLOT
+/*CREATE OR REPLACE TRIGGER T_validation_slot
+AFTER UPDATE OF ... ON SLOT
 BEGIN
+ -- calcul des moyennes pour faire la remontée jusqu'à la validation ou non de l'expérience
 END;
 /
+*/
 
 /*==============================================================*/
 /* Séquence pour l'autoincrémentation                           */
