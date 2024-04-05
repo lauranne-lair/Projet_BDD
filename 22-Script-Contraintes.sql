@@ -45,7 +45,7 @@ END;
 
 
 
--- Trigger nombre de slots par plaque : Erreur si le nombre de slots par plaque ne vaut pas 96 ou 384
+-- Trigger nombre de slots par plaque : Erreur si le nombre de slots par plaque n'est pas équivalent 
 CREATE OR REPLACE TRIGGER T_check_nb_slots_groupe
 BEFORE INSERT OR UPDATE ON GROUPESLOT
 FOR EACH ROW
@@ -419,6 +419,46 @@ EXCEPTION
         DBMS_OUTPUT.PUT_LINE('Erreur : ' || SQLERRM);
         -- Rollback pour annuler les changements en cas d'erreur
         ROLLBACK;
+END;
+/
+
+-- Trigger qui met à jour le stock après l'arrivée d'un lot 
+CREATE OR REPLACE TRIGGER T_arrivee_lot
+AFTER INSERT ON LOT
+FOR EACH ROW
+DECLARE
+    v_quantite_p96 INTEGER;
+    v_quantite_p384 INTEGER;
+BEGIN
+    -- Récupérer la quantité de plaques à ajouter au stock
+    IF :NEW.TYPE_PLAQUE_LOT = 96 THEN
+        v_quantite_p96 := :NEW.NB_PLAQUE;
+        v_quantite_p384 := 0;
+    ELSIF :NEW.TYPE_PLAQUE_LOT = 384 THEN
+        v_quantite_p96 := 0;
+        v_quantite_p384 := :NEW.NB_PLAQUE;
+    ELSE
+        -- Type de plaque non pris en charge
+        RAISE_APPLICATION_ERROR(-20001, 'Type de plaque non valide.');
+    END IF;
+
+    -- Mettre à jour le stock de plaques
+    IF v_quantite_p96 > 0 THEN
+        UPDATE STOCK
+        SET QUANTITE_P96 = QUANTITE_P96 + v_quantite_p96
+        WHERE ID_STOCK = :NEW.ID_STOCK;
+    END IF;
+
+    IF v_quantite_p384 > 0 THEN
+        UPDATE STOCK
+        SET QUANTITE_P384 = QUANTITE_P384 + v_quantite_p384
+        WHERE ID_STOCK = :NEW.ID_STOCK;
+    END IF;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        -- En cas d'erreur, afficher un message d'erreur
+        DBMS_OUTPUT.PUT_LINE('Erreur lors de l''ajout des plaques au stock : ' || SQLERRM);
 END;
 /
 
