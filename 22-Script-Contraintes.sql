@@ -15,7 +15,8 @@ DROP TRIGGER T_chek_valpos_PLAQUE;
 DROP TRIGGER T_chek_valpos_SLOT;
 DROP TRIGGER T_chek_valpos_STOCK;
 DROP TRIGGER T_chek_valpos_TECHNICIEN;
-
+DROP TRIGGER T_lancement_experience;
+DROP TRIGGER T_slot_par_groupe;
 
 DROP SEQUENCE seq_id_acheter;
 DROP SEQUENCE seq_id_appareil;
@@ -45,22 +46,12 @@ END;
 
 
 -- Trigger nombre de slots par plaque : Erreur si le nombre de slots par plaque ne vaut pas 96 ou 384
-CREATE OR REPLACE TRIGGER T_check_type_plaque
-BEFORE INSERT ON PLAQUE
-FOR EACH ROW
-DECLARE
-BEGIN
-    IF :NEW.TYPE_PLAQUE != 96 AND :NEW.TYPE_PLAQUE != 384 THEN
-        RAISE_APPLICATION_ERROR(-20001, 'Le nombre de slots par plaque doit être de 96 ou 384.');
-    END IF;
-END;
-/
-
 CREATE OR REPLACE TRIGGER T_check_nb_slots_groupe
 BEFORE INSERT OR UPDATE ON GROUPESLOT
 FOR EACH ROW
 DECLARE
     v_nb_slot INTEGER;
+    v_nb_slot_other INTEGER;
 BEGIN
     -- Obtenir le nombre de slots pour ce groupe
     SELECT COUNT(*)
@@ -68,18 +59,21 @@ BEGIN
     FROM SLOT
     WHERE ID_GROUPE = :NEW.ID_GROUPE;
 
+    -- Obtenir le nombre de slots dans les autres groupes de la même expérience
+    SELECT COUNT(*)
+    INTO v_nb_slot_other
+    FROM GROUPESLOT
+    WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE
+      AND :NEW.ID_GROUPE <> ID_GROUPE;
+
     -- Vérifier si ce nombre de slots est différent du nombre de slots dans les autres groupes de cette expérience
-    IF v_nb_slot != (
-        SELECT COUNT(*)
-        FROM SLOT S
-        JOIN GROUPESLOT G ON S.ID_GROUPE = G.ID_GROUPE
-        WHERE G.ID_EXPERIENCE = :NEW.ID_EXPERIENCE
-        GROUP BY G.ID_EXPERIENCE
-    ) THEN
+    IF v_nb_slot != v_nb_slot_other THEN
         RAISE_APPLICATION_ERROR(-20000, 'Chaque groupe de slots pour une même expérience doit avoir le même nombre de slots.');
     END IF;
 END;
 /
+
+
 
 
 -- Trigger pour avoir aucun nombre négatif dans les tables 
@@ -106,15 +100,25 @@ BEFORE INSERT OR UPDATE ON APPAREIL
 FOR EACH ROW
 DECLARE
     negative_value EXCEPTION;
+    appareil_non_disponible EXCEPTION;
 BEGIN
-    IF :NEW.ID_APPAREIL < 0 OR :NEW.ID_LISTE < 0 OR :NEW.DISPO_APPAREIL < 0 OR :NEW.POSITION_APPAREIL < 0 THEN
+    IF :NEW.ID_APPAREIL < 0 OR :NEW.ID_LISTE < 0 OR :NEW.POSITION_APPAREIL < 0 THEN
         RAISE negative_value;
     END IF;
+
+    -- Vérifier si l'appareil n'est pas disponible
+    IF :NEW.ETAT_APPAREIL != 'Disponible' THEN
+        RAISE appareil_non_disponible;
+    END IF;
+
 EXCEPTION
     WHEN negative_value THEN
         RAISE_APPLICATION_ERROR (-20002, 'La valeur ne peut pas être négative dans la table APPAREIL');
+    WHEN appareil_non_disponible THEN
+        RAISE_APPLICATION_ERROR (-20003, 'L''appareil n''est pas disponible');
 END;
 /
+
 
 --
 --CHERCHEUR 
@@ -324,39 +328,59 @@ BEGIN
     -- Calcul du prix de l'expérience selon la formule donnée
     prix := :NEW.PRIORITE_EXPERIENCE * (:NEW.NB_RENOUVELLEMENT_EXPERIENCE + :NEW.FREQUENCE_EXPERIENCE) / :NEW.NB_RENOUVELLEMENT_EXPERIENCE;
     
-    -- Vérification que le prix calculé est conforme à la contrainte
-    IF prix <> :NEW.PRIX_EXPERIENCE THEN
-        RAISE_APPLICATION_ERROR(-20014, 'Le prix de l''expérience doit être égal à (n+d)/n * la priorité de l''expérience.');
+    -- Affichage du prix calculé (facultatif)
+    DBMS_OUTPUT.PUT_LINE('Le prix calculé de l''expérience est : ' || prix);
+END;
+/
+
+
+//Contrainte sur le changement d'état des expériences lorsque l'appareil est en panne
+CREATE OR REPLACE TRIGGER T_panne_app
+AFTER UPDATE OF ETAT_APPAREIL ON APPAREIL
+FOR EACH ROW
+BEGIN
+    IF :OLD.ETAT_APPAREIL <> 'En panne' AND :NEW.ETAT_APPAREIL = 'En panne' THEN
+        UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'A programmer'
+        WHERE ID_APPAREIL = :NEW.ID_APPAREIL
+        AND ETAT_EXPERIENCE <> 'A programmer';
     END IF;
 END;
 /
 
-CREATE OR REPLACE TRIGGER T_panne_app
-BEFORE INSERT OR UPDATE ON APPAREIL
-FOR EACH ROW
-DECLARE
-BEGIN
-END;
 
-CREATE OR REPLACE TRIGGER T_rachat_stock
-AFTER INSERT ON PLAQUE
+--Triger d'automatisation pour les expériences :
+/*Quand une epérience est lancée par un chercheur (insert), le tehcnicien update son statut et le groupe de slot ainsi que les slots se remplisse automatiquement
+Appareil fait update sur le slot qui va faire un update sur le groupe de slots qui va faire un update sur l'expérience (statut = valide ou pas ?) 
+donc on doit pas faire les procédures de peuplement des groupes de slots et des slots
+*/
+CREATE OR REPLACE TRIGGER T_lancement_experience
+AFTER UPDATE OF ETAT_EXPERIENCE ON EXPERIENCE
 FOR EACH ROW
-DECLARE
-    volume_utilise_trimestre NUMBER;
-    stock_actuel NUMBER;
 BEGIN
-    -- Calcul du volume utilisé ce trimestre
-    SELECT SUM(NB_EXPERIENCE_PLAQUE) INTO volume_utilise_trimestre
-    FROM PLAQUE
-    WHERE ID_LOT IN (
-        SELECT ID_LOT FROM LOT WHERE DATE_LIVRAISON_LOT >= TRUNC(ADD_MONTHS(SYSDATE, -3), 'Q') AND DATE_LIVRAISON_LOT < TRUNC(SYSDATE, 'Q')
-    );
-
-    -- Calcul du stock actuel de plaques
-    SELECT SUM(NB_PLAQUE) INTO stock_actuel FROM LOT;
+    FOR i IN 1..NB_GROUPE_SLOT_EXPERIENCE LOOP
+        SELECT ID_EXPERIENCE INTO ID_EXPERIENCE_GROUPE FROM EXPERIENCE;
+        SELECT ID_PLAQUE INTO ID_PLAQUE_GROUPE FROM PLAQUE WHERE 
+        INSERT INTO GROUPESLOT(ID_EXPERIENCE, ID_PLAQUE) VALUES (ID_EXPERIENCE_GROUPE, ID_PLAQUE_GROUPE);
+        --attribuer une plaque et vérifier si le nombre de groupe de slots qu'on rajoute rentre dans la plaque selon type
+    END LOOP;
 END;
 /
 
+CREATE OR REPLACE TRIGGER T_slot_par_groupe
+AFTER INSERT OR UPDATE ON GROUPESLOT
+BEGIN
+    FOR i in 1..3 LOOP
+        SELECT ID_GROUPE INTO ID_GROUPE_SLOT FROM GROUPESLOT;
+        INSERT INTO SLOT(ID_GROUPE) VALUES (ID_GROUPE_SLOT);
+    END LOOP;
+END;
+/
+
+CREATE OR REPLACE TRIGGER T_validation_slot
+--AFTER UPDATE OF ... ON SLOT
+BEGIN
+END;
+/
 
 CREATE OR REPLACE TRIGGER refus_plaque_trigger
 AFTER INSERT ON T_refus_plaque
@@ -391,7 +415,7 @@ END;
 
 
 /*==============================================================*/
-/* Séquence pour l'autoincrémentation                                      */
+/* Séquence pour l'autoincrémentation                           */
 /*==============================================================*/
 -- Création de séquences
 CREATE SEQUENCE seq_id_acheter START WITH 1 INCREMENT BY 1;

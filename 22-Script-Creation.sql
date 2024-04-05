@@ -102,7 +102,7 @@ create table APPAREIL
 (
    ID_APPAREIL          INTEGER              not null,
    ID_LISTE             INTEGER,
-   DISPO_APPAREIL       INTEGER,
+   ETAT_APPAREIL        VARCHAR2(10),
    POSITION_APPAREIL    INTEGER,
    constraint PK_APPAREIL primary key (ID_APPAREIL)
 );
@@ -155,6 +155,7 @@ create table EXPERIENCE
    ID_CHERCHEUR         INTEGER              not null,
    TYPE_EXPERIENCE      VARCHAR2(14),
    ETAT_EXPERIENCE      VARCHAR2(25),
+   NB_GROUPE_SLOT_EXPERIENCE INTEGER,
    DEB_EXPERIENCE       DATE,
    FIN_EXPERIENCE       DATE,
    DUREE_EXPERIENCE     INTEGER,
@@ -274,7 +275,7 @@ create table LISTEATTENTE
 create table LOT 
 (
    ID_LOT               INTEGER              not null,
-   ID_STOCK             INTEGER              not null,
+ID_STOCK             INTEGER              not null,
    DATE_LIVRAISON_LOT   DATE,
    NB_PLAQUE            INTEGER, 
    constraint PK_LOT primary key (ID_LOT),
