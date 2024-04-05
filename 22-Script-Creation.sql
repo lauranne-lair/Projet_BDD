@@ -275,7 +275,7 @@ create table LISTEATTENTE
 create table LOT 
 (
    ID_LOT               INTEGER              not null,
-ID_STOCK             INTEGER              not null,
+   ID_STOCK             INTEGER              not null,
    DATE_LIVRAISON_LOT   DATE,
    NB_PLAQUE            INTEGER, 
    constraint PK_LOT primary key (ID_LOT),
