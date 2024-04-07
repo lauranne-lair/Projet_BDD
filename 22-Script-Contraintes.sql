@@ -358,21 +358,20 @@ AFTER UPDATE OF ETAT_EXPERIENCE ON EXPERIENCE
 FOR EACH ROW
 BEGIN
     FOR i IN 1..NB_GROUPE_SLOT_EXPERIENCE LOOP
-        SELECT ID_PLAQUE INTO ID_PLAQUE_EXP FROM PLAQUE WHERE :NEW
-        
-        SELECT p.ID_PLAQUE, p.TYPE_PLAQUE 
-        INTO ID_PLAQUE_GROUPE, TYPE_PLAQUE_GROUPE 
-        FROM PLAQUE p 
-        JOIN PLAQUELOT pl ON p.ID_LOT = pl.ID_LOT 
-        JOIN STOCK s ON pl.ID_STOCK = s.ID_STOCK 
-        WHERE (p.TYPE_PLAQUE = 384 AND s.Quantite_P384 != 0)
-        OR (p.TYPE_PLAQUE = 96 AND s.Quantite_P96 != 0); -- On vérifie si le stock n'est pas à zéro selon le type de plaque nécessaire pour l'expérience
-        
-
-        IF 
-        -- mettre à jour les stocks en enlevant 1 au stock de la plaque au nombre de puits correspondant si elle est nouvelle
+        IF i=1 THEN
+            SELECT ID_PLAQUE INTO ID_PLAQUE_EXP FROM PLAQUE WHERE ((NB_GROUPE_SLOT_EXPERIENCE*NB_SLOTS_PAR_GROUPE_EXPERIENCE)< TYPE_PLAQUE); -- On considère que toutes les plaques en stock sont vides et non utilisés, et donc qu'à chaque fin d'expérience, les plaques sont jetées.
+            -- mettre à jour les stocks en enlevant 1 au stock de la plaque au nombre de puits correspondant
+            IF TYPE_PLAQUE = 384 THEN
+                UPDATE STOCK
+                SET Quantite_P384 = Quantite_P384 - 1
+                WHERE ID_STOCK = (SELECT ID_STOCK FROM PLAQUELOT WHERE ID_PLAQUE = ID_PLAQUE_EXP);
+            ELSIF TYPE_PLAQUE = 96 THEN
+                UPDATE STOCK
+                SET Quantite_P96 = Quantite_P96 - 1
+                WHERE ID_STOCK = (SELECT ID_STOCK FROM PLAQUELOT WHERE ID_PLAQUE = ID_PLAQUE_EXP);
+            END IF;
+        END IF;
         INSERT INTO GROUPESLOT(ID_EXPERIENCE, ID_PLAQUE) VALUES (ID_EXPERIENCE_GROUPE, ID_PLAQUE_GROUPE);
-        -- attribuer une plaque et vérifier si le nombre de groupe de slots qu'on rajoute rentre dans la plaque selon son type (96 ou 384 puits)
         SELECT NB_SLOTS_PAR_GROUPE_EXPERIENCE INTO NB_SLOTS_PAR_GROUPE FROM EXPERIENCE;
         FOR i in 1..NB_SLOTS_PAR_GROUPE LOOP
             SELECT ID_GROUPE INTO ID_GROUPE_SLOT FROM GROUPESLOT;
@@ -384,13 +383,15 @@ END;
 /
 
 
-/*CREATE OR REPLACE TRIGGER T_validation_slot
-AFTER UPDATE OF ... ON SLOT
+CREATE OR REPLACE TRIGGER after_experience_update
+AFTER UPDATE OF ETAT_EXPERIENCE ON EXPERIENCE
+FOR EACH ROW
+WHEN (new.ETAT_EXPERIENCE = 'effectuée')
 BEGIN
- -- calcul des moyennes pour faire la remontée jusqu'à la validation ou non de l'expérience
+    -- calcul des moyennes pour faire la remontée jusqu'à la validation ou non de l'expérience
+    
 END;
 /
-*/
 
 CREATE OR REPLACE TRIGGER refus_plaque_trigger
 AFTER INSERT ON T_refus_plaque
