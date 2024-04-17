@@ -356,32 +356,46 @@ donc on doit pas faire les procédures de peuplement des groupes de slots et des 
 CREATE OR REPLACE TRIGGER T_lancement_experience
 AFTER UPDATE OF ETAT_EXPERIENCE ON EXPERIENCE
 FOR EACH ROW
+DECLARE
+    TYPE_PLAQUE_EXP PLAQUE.TYPE_PLAQUE%TYPE;
+    NB_GROUPE_EXP NUMBER;
+    ID_PLAQUE_EXP PLAQUE.ID_PLAQUE%TYPE;
+    NB_SLOTS_PAR_GROUPE NUMBER;
 BEGIN
-    FOR i IN 1..NB_GROUPE_SLOT_EXPERIENCE LOOP
-        IF i=1 THEN
-            SELECT ID_PLAQUE INTO ID_PLAQUE_EXP FROM PLAQUE WHERE ((NB_GROUPE_SLOT_EXPERIENCE*NB_SLOTS_PAR_GROUPE_EXPERIENCE)< TYPE_PLAQUE); -- On considère que toutes les plaques en stock sont vides et non utilisés, et donc qu'à chaque fin d'expérience, les plaques sont jetées.
-            -- mettre à jour les stocks en enlevant 1 au stock de la plaque au nombre de puits correspondant
-            IF TYPE_PLAQUE = 384 THEN
+    -- Stocker les valeurs de NEW.TYPE_PLAQUE et NEW.NB_GROUPE_SLOT_EXPERIENCE dans des variables
+    TYPE_PLAQUE_EXP := :NEW.TYPE_PLAQUE;
+    NB_GROUPE_EXP := :NEW.NB_GROUPE_SLOT_EXPERIENCE;
+    
+    FOR i IN 1..NB_GROUPE_EXP LOOP
+        IF i = 1 THEN
+            -- Sélectionner l'ID_PLAQUE correspondant au TYPE_PLAQUE de l'expérience mise à jour
+            SELECT ID_PLAQUE INTO ID_PLAQUE_EXP
+            FROM PLAQUE
+            WHERE TYPE_PLAQUE = TYPE_PLAQUE_EXP AND ROWNUM = 1;
+            
+            -- Mettre à jour les stocks en enlevant 1 au stock de la plaque pour le TYPE_PLAQUE correspondant
+            IF TYPE_PLAQUE_EXP = 384 THEN
                 UPDATE STOCK
                 SET Quantite_P384 = Quantite_P384 - 1
                 WHERE ID_STOCK = (SELECT ID_STOCK FROM PLAQUELOT WHERE ID_PLAQUE = ID_PLAQUE_EXP);
-            ELSIF TYPE_PLAQUE = 96 THEN
+            ELSIF TYPE_PLAQUE_EXP = 96 THEN
                 UPDATE STOCK
                 SET Quantite_P96 = Quantite_P96 - 1
                 WHERE ID_STOCK = (SELECT ID_STOCK FROM PLAQUELOT WHERE ID_PLAQUE = ID_PLAQUE_EXP);
             END IF;
         END IF;
-        INSERT INTO GROUPESLOT(ID_EXPERIENCE, ID_PLAQUE) VALUES (ID_EXPERIENCE_GROUPE, ID_PLAQUE_GROUPE);
-        SELECT NB_SLOTS_PAR_GROUPE_EXPERIENCE INTO NB_SLOTS_PAR_GROUPE FROM EXPERIENCE;
-        FOR i in 1..NB_SLOTS_PAR_GROUPE LOOP
-            SELECT ID_GROUPE INTO ID_GROUPE_SLOT FROM GROUPESLOT;
-            INSERT INTO SLOT(ID_GROUPE) VALUES (ID_GROUPE_SLOT);
-            -- enregistrer chaque slot avec un identifiant et une position dans la plaque
+        -- Insérer le groupe de slot pour l'expérience
+        INSERT INTO GROUPESLOT(ID_EXPERIENCE, ID_PLAQUE) VALUES (:NEW.ID_EXPERIENCE, ID_PLAQUE_EXP);
+        -- Sélectionner le nombre de slots par groupe pour l'expérience
+        SELECT NB_SLOTS_PAR_GROUPE_EXPERIENCE INTO NB_SLOTS_PAR_GROUPE FROM EXPERIENCE WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
+        -- Insérer des slots pour chaque groupe
+        FOR j IN 1..NB_SLOTS_PAR_GROUPE LOOP
+            INSERT INTO SLOT(ID_GROUPE) VALUES ((SELECT ID_GROUPE FROM GROUPESLOT WHERE ROWNUM = 1)); -- Vous devrez ajuster cette partie pour sélectionner l'ID_GROUPE correctement
+            -- Enregistrer chaque slot avec un identifiant et une position dans la plaque
         END LOOP;
     END LOOP;
 END;
 /
-
 
 CREATE OR REPLACE TRIGGER after_experience_update
 AFTER UPDATE OF ETAT_EXPERIENCE ON EXPERIENCE
