@@ -70,6 +70,18 @@ drop table STOCK cascade constraints;
 drop index APPARTENIR_FK;
 drop table TECHNICIEN cascade constraints;
 
+DROP SEQUENCE seq_id_acheter;
+DROP SEQUENCE seq_id_appareil;
+DROP SEQUENCE seq_id_chercheur;
+DROP SEQUENCE seq_id_equipe;
+DROP SEQUENCE seq_id_experience;
+DROP SEQUENCE seq_id_facture;
+DROP SEQUENCE seq_id_groupeslot;
+DROP SEQUENCE seq_id_lot;
+DROP SEQUENCE seq_id_plaque;
+DROP SEQUENCE seq_id_slot;
+DROP SEQUENCE seq_id_technicien;
+
 
 /*==============================================================*/
 /* Table : ACHETER                                              */
@@ -98,14 +110,15 @@ create index ACHETER2_FK on ACHETER (
 /*==============================================================*/
 /* Table : APPAREIL                                             */
 /*==============================================================*/
-create table APPAREIL 
+CREATE TABLE APPAREIL
 (
-   ID_APPAREIL          INTEGER              not null,
+   ID_APPAREIL          INTEGER              NOT NULL,
    ID_LISTE             INTEGER,
-   ETAT_APPAREIL        VARCHAR2(10),
+   ETAT_APPAREIL        VARCHAR2(10)         NOT NULL CHECK (ETAT_APPAREIL IN ('disponible', 'indisponible', 'en panne')),
    POSITION_APPAREIL    INTEGER,
-   constraint PK_APPAREIL primary key (ID_APPAREIL)
+   CONSTRAINT PK_APPAREIL PRIMARY KEY (ID_APPAREIL)
 );
+
 
 /*==============================================================*/
 /* Index : CONTENIR_FK                                          */
@@ -431,6 +444,36 @@ alter table TECHNICIEN
    add constraint FK_TECHNICI_APPARTENI_EQUIPE foreign key (ID_EQUIPE)
       references EQUIPE (ID_EQUIPE);
 
+/*==============================================================*/
+/* Séquence pour l'autoincrémentation                           */
+/*==============================================================*/
+-- Création de séquences
+CREATE SEQUENCE seq_id_acheter START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE seq_id_appareil START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE seq_id_chercheur START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE seq_id_equipe START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE seq_id_experience START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE seq_id_facture START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE seq_id_groupeslot START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE seq_id_lot START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE seq_id_plaque START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE seq_id_slot START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE seq_id_technicien START WITH 1 INCREMENT BY 1;
+
+/*==============================================================*/
+/* Modification des tables pour utiliser les séquences                                        */
+/*==============================================================*/
+ALTER TABLE ACHETER MODIFY (ID_FOURNISSEUR DEFAULT seq_id_acheter.NEXTVAL);
+ALTER TABLE APPAREIL MODIFY (ID_APPAREIL DEFAULT seq_id_appareil.NEXTVAL);
+ALTER TABLE CHERCHEUR MODIFY (ID_CHERCHEUR DEFAULT seq_id_chercheur.NEXTVAL);
+ALTER TABLE EQUIPE MODIFY (ID_EQUIPE DEFAULT seq_id_equipe.NEXTVAL);
+ALTER TABLE EXPERIENCE MODIFY (ID_EXPERIENCE DEFAULT seq_id_experience.NEXTVAL);
+ALTER TABLE FACTURE MODIFY (ID_FACTURE DEFAULT seq_id_facture.NEXTVAL);
+ALTER TABLE GROUPESLOT MODIFY (ID_GROUPE DEFAULT seq_id_groupeslot.NEXTVAL);
+ALTER TABLE LOT MODIFY (ID_LOT DEFAULT seq_id_lot.NEXTVAL);
+ALTER TABLE PLAQUE MODIFY (ID_PLAQUE DEFAULT seq_id_plaque.NEXTVAL);
+ALTER TABLE SLOT MODIFY (ID_SLOT DEFAULT seq_id_slot.NEXTVAL);
+ALTER TABLE TECHNICIEN MODIFY (ID_TECHNICIEN DEFAULT seq_id_technicien.NEXTVAL);
 
 
 Commit;

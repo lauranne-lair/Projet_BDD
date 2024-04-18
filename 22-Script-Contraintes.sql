@@ -18,18 +18,6 @@ DROP TRIGGER T_chek_valpos_TECHNICIEN;
 DROP TRIGGER T_lancement_experience;
 DROP TRIGGER T_slot_par_groupe;
 
-DROP SEQUENCE seq_id_acheter;
-DROP SEQUENCE seq_id_appareil;
-DROP SEQUENCE seq_id_chercheur;
-DROP SEQUENCE seq_id_equipe;
-DROP SEQUENCE seq_id_experience;
-DROP SEQUENCE seq_id_facture;
-DROP SEQUENCE seq_id_groupeslot;
-DROP SEQUENCE seq_id_lot;
-DROP SEQUENCE seq_id_plaque;
-DROP SEQUENCE seq_id_slot;
-DROP SEQUENCE seq_id_technicien;
-
 -- Trigger Valeur de biais A1 doit être inférieur ou égal à A2
 CREATE OR REPLACE TRIGGER T_check_valeur_biais2
 BEFORE INSERT OR UPDATE ON EXPERIENCE
@@ -41,7 +29,6 @@ BEGIN
     END IF;
 END; 
 /
-
 
 
 
@@ -477,35 +464,62 @@ EXCEPTION
 END;
 /
 
+/*==============================================================*/
+/* Trigger Facture, date non nul et égale a 01 uniquement, equipe non null                         */
+/*==============================================================*/
+CREATE OR REPLACE TRIGGER T_FACTURE
+BEFORE INSERT ON FACTURE
+FOR EACH ROW
+BEGIN
+  IF :NEW.MONTANT_FACTURE IS NULL THEN
+    RAISE_APPLICATION_ERROR(-20004, 'Le montant de la facture ne peut pas être nul');
+  END IF;
+
+  IF :NEW.DATE_FACTURE IS NULL THEN
+    RAISE_APPLICATION_ERROR(-20002, 'La date de facturation ne peut pas être nulle');
+  END IF;
+
+  IF TO_CHAR(:NEW.DATE_FACTURE, 'DD') != '01' THEN
+    RAISE_APPLICATION_ERROR(-20000, 'La date de facturation doit être le premier jour du mois.');
+  END IF;
+END;
+
+/*==============================================================*/
+/* Trigger modification du solde équipe                   */
+/*==============================================================*/
+
+CREATE OR REPLACE TRIGGER T_APPAREIL
+BEFORE INSERT ON APPAREIL
+FOR EACH ROW
+DECLARE
+   LAST_RANG INTEGER;
+BEGIN
+  SELECT MAX(POSITION_APPAREIL) INTO  LAST_RANG FROM APPAREIL;
+  IF  LAST_RANG IS NULL THEN
+     LAST_RANG := 0;
+  END IF;
+  :NEW.POSITION_APPAREIL :=  LAST_RANG + 1;
+  :NEW.ETAT_APPAREIL := 'disponible';
+END;
+/
+
+/*DELETE FROM APPAREIL WHERE ID_APPAREIL = 1;
+INSERT INTO APPAREIL (ID_APPAREIL, ID_LISTE) VALUES (1, 1);*/
+
+
 
 
 /*==============================================================*/
-/* Séquence pour l'autoincrémentation                           */
+/* Trigger modification du solde équipe                   */
 /*==============================================================*/
--- Création de séquences
-CREATE SEQUENCE seq_id_acheter START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE seq_id_appareil START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE seq_id_chercheur START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE seq_id_equipe START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE seq_id_experience START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE seq_id_facture START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE seq_id_groupeslot START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE seq_id_lot START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE seq_id_plaque START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE seq_id_slot START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE seq_id_technicien START WITH 1 INCREMENT BY 1;
 
-/*==============================================================*/
-/* Modification des tables pour utiliser les séquences                                        */
-/*==============================================================*/
-ALTER TABLE ACHETER MODIFY (ID_FOURNISSEUR DEFAULT seq_id_acheter.NEXTVAL);
-ALTER TABLE APPAREIL MODIFY (ID_APPAREIL DEFAULT seq_id_appareil.NEXTVAL);
-ALTER TABLE CHERCHEUR MODIFY (ID_CHERCHEUR DEFAULT seq_id_chercheur.NEXTVAL);
-ALTER TABLE EQUIPE MODIFY (ID_EQUIPE DEFAULT seq_id_equipe.NEXTVAL);
-ALTER TABLE EXPERIENCE MODIFY (ID_EXPERIENCE DEFAULT seq_id_experience.NEXTVAL);
-ALTER TABLE FACTURE MODIFY (ID_FACTURE DEFAULT seq_id_facture.NEXTVAL);
-ALTER TABLE GROUPESLOT MODIFY (ID_GROUPE DEFAULT seq_id_groupeslot.NEXTVAL);
-ALTER TABLE LOT MODIFY (ID_LOT DEFAULT seq_id_lot.NEXTVAL);
-ALTER TABLE PLAQUE MODIFY (ID_PLAQUE DEFAULT seq_id_plaque.NEXTVAL);
-ALTER TABLE SLOT MODIFY (ID_SLOT DEFAULT seq_id_slot.NEXTVAL);
-ALTER TABLE TECHNICIEN MODIFY (ID_TECHNICIEN DEFAULT seq_id_technicien.NEXTVAL);
+CREATE OR REPLACE TRIGGER UPDATE_SOLDE_EQUIPE
+AFTER INSERT ON FACTURE
+FOR EACH ROW
+BEGIN
+  UPDATE EQUIPE
+     SET SOLDE_EQUIPE = SOLDE_EQUIPE + :NEW.MONTANT_FACTURE
+   WHERE ID_EQUIPE = :NEW.ID_EQUIPE;
+END;
+/
+

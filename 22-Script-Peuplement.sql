@@ -1,13 +1,3 @@
- /*==============================================================*/
-/* TEST AJOUT EQUIPE      : ok          hhh                        */
-/*==============================================================*/
-/*INSERT INTO EQUIPE (ID_EQUIPE, ADRESSE_EQUIPE, SOLDE_EQUIPE) 
-VALUES (seq_id_equipe.NEXTVAL, 'Nouvelle Adresse', 5000);
-INSERT INTO EQUIPE (ID_EQUIPE, ADRESSE_EQUIPE, SOLDE_EQUIPE) 
-VALUES (seq_id_equipe.NEXTVAL, 'Nouvelle Adresse', 5070);
-INSERT INTO EQUIPE (ID_EQUIPE, ADRESSE_EQUIPE, SOLDE_EQUIPE) 
-VALUES (seq_id_equipe.NEXTVAL, 'Nouvelle Adresse', 5007);*/
-
 
 /*==============================================================*/
 /* Peuplement des tables                                        */
@@ -58,10 +48,35 @@ INSERT INTO ACHETER (ID_FOURNISSEUR, ID_LOT) VALUES (1, 1);
 INSERT INTO ACHETER (ID_FOURNISSEUR, ID_LOT) VALUES (2, 2);
 
 --EQUIPE
-INSERT INTO EQUIPE_RECHERCHE  (ID_EQUIPE, ADRESSE_EQUIPE, SOLDE_EQUIPE)  
-VALUES (SEQ_EQUIPE_ID.nextval, 'Rue Jean Monet', 5000);
-INSERT INTO EQUIPE_RECHERCHE  (ID_EQUIPE, ADRESSE_EQUIPE, SOLDE_EQUIPE)  
-VALUES (SEQ_EQUIPE_ID.nextval, 'Place Mermoz', 10000);
+CREATE OR REPLACE PROCEDURE INSERER_EQUIPE_ALEATOIRE (
+  p_nb_equipes IN NUMBER
+) IS
+  p_adresse_equipe VARCHAR2(50);
+  p_solde_equipe NUMBER;
+BEGIN
+  FOR i IN 1..p_nb_equipes LOOP
+    -- Générer une adresse aléatoire
+    p_adresse_equipe := DBMS_RANDOM.STRING('A', 10) || ' ' || DBMS_RANDOM.STRING('A', 10) || ' ' || DBMS_RANDOM.STRING('N', 4);
+
+    -- Générer un solde aléatoire entre 1000 et 10000
+    p_solde_equipe := TRUNC(DBMS_RANDOM.VALUE(1000, 10001));
+
+    -- Insérer une nouvelle équipe avec des valeurs aléatoires
+    INSERT INTO EQUIPE (ID_EQUIPE, ADRESSE_EQUIPE, SOLDE_EQUIPE)
+    VALUES (SEQ_ID_EQUIPE.NEXTVAL, p_adresse_equipe, p_solde_equipe);
+  END LOOP;
+
+  COMMIT; -- Optionnel : commettre la transaction immédiatement après l'insertion
+EXCEPTION
+  WHEN OTHERS THEN
+    -- Vous pouvez ajouter un traitement des erreurs personnalisé ici, comme la journalisation des erreurs
+    RAISE; -- Re-lever l'exception pour propager l'erreur à l'appelant
+END INSERER_EQUIPE_ALEATOIRE;
+/
+
+EXEC INSERER_EQUIPE_ALEATOIRE(10);
+
+
 
 --CHERCHEUR
 CREATE OR REPLACE PROCEDURE PEUPLE_CHERCHEUR(nb_lignes IN NUMBER) AS
