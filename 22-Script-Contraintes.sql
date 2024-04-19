@@ -93,11 +93,6 @@ BEGIN
         RAISE negative_value;
     END IF;
 
-    -- Vérifier si l'appareil n'est pas disponible
-    IF :NEW.ETAT_APPAREIL != 'Disponible' THEN
-        RAISE appareil_non_disponible;
-    END IF;
-
 EXCEPTION
     WHEN negative_value THEN
         RAISE_APPLICATION_ERROR (-20002, 'La valeur ne peut pas être négative dans la table APPAREIL');
@@ -503,11 +498,37 @@ BEGIN
 END;
 /
 
-/*DELETE FROM APPAREIL WHERE ID_APPAREIL = 1;
-INSERT INTO APPAREIL (ID_APPAREIL, ID_LISTE) VALUES (1, 1);*/
+CREATE OR REPLACE TRIGGER T_LISTE_ATTENTE
+AFTER INSERT ON EXPERIENCE
+FOR EACH ROW
+DECLARE
+  v_nb_exp_attente  NUMBER;
+BEGIN
+  -- Récupérer le nombre actuel d'expériences en attente pour la liste concernée
+  SELECT NB_EXP_ATTENTE
+  INTO v_nb_exp_attente
+  FROM LISTEATTENTE
+  WHERE ID_LISTE = :NEW.ID_LISTE;
+
+  -- Mettre à jour le nombre d'expériences en attente pour la liste concernée
+  UPDATE LISTEATTENTE
+  SET NB_EXP_ATTENTE = v_nb_exp_attente + 1
+  WHERE ID_LISTE = :NEW.ID_LISTE;
+END;
+/
 
 
-
+/*==============================================================*/
+/* Trigger modification du solde équipe                   */
+/*==============================================================*/
+CREATE OR REPLACE FUNCTION CALCUL_FREQUENCE_OBSERVATION(d IN NUMBER, f IN NUMBER)
+RETURN NUMBER IS
+  result NUMBER;
+BEGIN
+  result := TRUNC(d / f);
+  RETURN result;
+END CALCUL_FREQUENCE_OBSERVATION;
+/
 
 /*==============================================================*/
 /* Trigger modification du solde équipe                   */
@@ -522,4 +543,49 @@ BEGIN
    WHERE ID_EQUIPE = :NEW.ID_EQUIPE;
 END;
 /
+
+
+/*==============================================================*/
+/* Trigger expérience echouée ajt liste renouveler + coefficient de surcoût                  */
+/*==============================================================*/
+CREATE OR REPLACE TRIGGER Contrainte_statut_experience
+AFTER INSERT OR UPDATE ON EXPERIENCE
+FOR EACH ROW
+DECLARE
+  v_new_etat_experience EXPERIENCE.ETAT_EXPERIENCE%TYPE;
+  v_coefficient_surcout NUMBER;
+BEGIN
+  -- Vérifier si la plaque ou le groupe a été refusé
+  IF (:NEW.VALEUR_BIAIS_A1 IS NULL OR :NEW.VALEUR_BIAIS_A2 IS NULL OR :NEW.VALEUR_BIAIS_A3 IS NULL) THEN
+    v_new_etat_experience := 'Echouée';
+    -- Ajouter l'expérience à la liste des expériences à renouveler
+    INSERT INTO LISTEATTENTE (ID_LISTE, NB_EXP_ATTENTE, EXPERIENCE, NB_EXP_DOUBLE)
+    VALUES (:NEW.ID_LISTE, 1, :NEW.ID_EXPERIENCE, 0);
+  ELSIF (:NEW.VALEUR_BIAIS_A1 > :NEW.VALEUR_BIAIS_A2 OR :NEW.VALEUR_BIAIS_A2 > :NEW.VALEUR_BIAIS_A3) THEN
+    v_new_etat_experience := 'Echouée';
+    -- Ajouter l'expérience à la liste des expériences à renouveler
+    INSERT INTO LISTEATTENTE (ID_LISTE, NB_EXP_ATTENTE, EXPERIENCE, NB_EXP_DOUBLE)
+    VALUES (:NEW.ID_LISTE, 1, :NEW.ID_EXPERIENCE, 0);
+  ELSE
+    v_new_etat_experience := 'Réussie';
+  END IF;
+
+  -- Mettre à jour l'état de l'expérience
+  UPDATE EXPERIENCE SET ETAT_EXPERIENCE = v_new_etat_experience WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
+
+  -- Recalculer le coefficient de surcoût si nécessaire
+  IF (v_new_etat_experience = 'Echouée') THEN
+    -- Récupérer le coefficient de surcoût actuel
+    SELECT COEFFICIENT_SURCOUT INTO v_coefficient_surcout FROM FACTURE WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
+
+    -- Code pour recalculer le coefficient de surcoût en fonction des données de la table FACTURE
+    -- Par exemple :
+    -- v_coefficient_surcout := v_coefficient_surcout * 1.1;
+
+    -- Mettre à jour le coefficient de surcoût dans la table FACTURE
+    UPDATE FACTURE SET COEFFICIENT_SURCOUT = v_coefficient_surcout WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
+  END IF;
+END;
+/
+
 

@@ -152,7 +152,26 @@ END;
 /
 
 --APPAREIL
-INSERT INTO APPAREIL (ID_APPAREIL, ID_LISTE, ETAT_APPAREIL, POSITION_APPAREIL) VALUES (seq_id_appareil.NEXTVAL, 1, 'Disponible', 1);
+CREATE OR REPLACE PROCEDURE PEUPLEMENT_APPAREIL AS
+  v_next_id_appareil NUMBER;
+BEGIN
+  SELECT NVL(MAX(ID_APPAREIL), 0) + 1 INTO v_next_id_appareil FROM APPAREIL;
+
+  FOR i IN 1..10 LOOP -- Insérer 10 enregistrements, vous pouvez ajuster ce nombre
+    INSERT INTO APPAREIL (ID_APPAREIL, ID_LISTE, ETAT_APPAREIL, POSITION_APPAREIL)
+    VALUES (v_next_id_appareil, 1, 'Disponible', v_next_id_appareil); -- Vous pouvez ajuster les valeurs ici
+
+    v_next_id_appareil := v_next_id_appareil + 1;
+  END LOOP;
+
+  COMMIT;
+END PEUPLEMENT_APPAREIL;
+/
+
+
+EXEC PEUPLEMENT_APPAREIL;
+
+
 
 --EXPERIENCE
 CREATE OR REPLACE PROCEDURE PEUPLE_EXPERIENCE(nb_lignes IN NUMBER) AS
