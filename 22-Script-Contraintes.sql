@@ -15,8 +15,20 @@ DROP TRIGGER T_chek_valpos_PLAQUE;
 DROP TRIGGER T_chek_valpos_SLOT;
 DROP TRIGGER T_chek_valpos_STOCK;
 DROP TRIGGER T_chek_valpos_TECHNICIEN;
-DROP TRIGGER T_lancement_experience;
 DROP TRIGGER T_slot_par_groupe;
+DROP TRIGGER T_prix_experience;
+DROP TRIGGER T_panne_app;
+DROP TRIGGER T_lancement_experience;
+DROP TRIGGER after_experience_update;
+DROP TRIGGER refus_plaque_trigger;
+DROP TRIGGER T_arrivee_lot;
+DROP TRIGGER T_FACTURE;
+DROP TRIGGER T_APPAREIL;
+DROP TRIGGER T_LISTE_ATTENTE;
+DROP TRIGGER CALCUL_FREQUENCE_OBSERVATION;
+DROP TRIGGER UPDATE_SOLDE_EQUIPE;
+DROP TRIGGER Contrainte_statut_experience;
+
 
 -- Trigger Valeur de biais A1 doit être inférieur ou égal à A2
 CREATE OR REPLACE TRIGGER T_check_valeur_biais2
@@ -29,8 +41,6 @@ BEGIN
     END IF;
 END; 
 /
-
-
 
 -- Trigger nombre de slots par plaque : Erreur si le nombre de slots par plaque n'est pas équivalent 
 CREATE OR REPLACE TRIGGER T_check_nb_slots_groupe
@@ -59,9 +69,6 @@ BEGIN
     END IF;
 END;
 /
-
-
-
 
 -- Trigger pour avoir aucun nombre négatif dans les tables 
 -- Table acheter : 
@@ -385,7 +392,7 @@ FOR EACH ROW
 WHEN (new.ETAT_EXPERIENCE = 'effectuée')
 BEGIN
     -- calcul des moyennes pour faire la remontée jusqu'à la validation ou non de l'expérience
-    
+    NULL;
 END;
 /
 
@@ -398,14 +405,14 @@ BEGIN
     -- Récupérer l'identifiant de l'expérience associée au refus
     v_experience_id := :NEW.experience_id;
 
-      -- Simuler un refus de plaque ou de groupe en mettant à jour le statut de l'expérience
-  UPDATE EXPERIENCE
-  SET statut = 'Echoué'
-  WHERE  val_id_plaque= val_id_exp;
+    -- Simuler un refus de plaque ou de groupe en mettant à jour le statut de l'expérience
+    UPDATE EXPERIENCE
+    SET statut = 'Echoué'
+    WHERE ID_EXPERIENCE = v_experience_id;
 
-  -- Ajouter l'expérience à renouveler
-  INSERT INTO LISTEATTENTE()
-  VALUES (val_id_exp);
+    -- Ajouter l'expérience à renouveler
+    INSERT INTO LISTEATTENTE (ID_EXPERIENCE, NB_EXP_ATTENTE)
+    VALUES (v_experience_id, 1);
 
     -- Commit pour valider les changements
     COMMIT;
@@ -419,7 +426,6 @@ EXCEPTION
 END;
 /
 
--- Trigger qui met à jour le stock après l'arrivée d'un lot 
 CREATE OR REPLACE TRIGGER T_arrivee_lot
 AFTER INSERT ON LOT
 FOR EACH ROW
@@ -552,39 +558,39 @@ CREATE OR REPLACE TRIGGER Contrainte_statut_experience
 AFTER INSERT OR UPDATE ON EXPERIENCE
 FOR EACH ROW
 DECLARE
-  v_new_etat_experience EXPERIENCE.ETAT_EXPERIENCE%TYPE;
-  v_coefficient_surcout NUMBER;
+    v_new_etat_experience EXPERIENCE.ETAT_EXPERIENCE%TYPE;
+    v_coefficient_surcout NUMBER;
 BEGIN
-  -- Vérifier si la plaque ou le groupe a été refusé
-  IF (:NEW.VALEUR_BIAIS_A1 IS NULL OR :NEW.VALEUR_BIAIS_A2 IS NULL OR :NEW.VALEUR_BIAIS_A3 IS NULL) THEN
-    v_new_etat_experience := 'Echouée';
-    -- Ajouter l'expérience à la liste des expériences à renouveler
-    INSERT INTO LISTEATTENTE (ID_LISTE, NB_EXP_ATTENTE, EXPERIENCE, NB_EXP_DOUBLE)
-    VALUES (:NEW.ID_LISTE, 1, :NEW.ID_EXPERIENCE, 0);
-  ELSIF (:NEW.VALEUR_BIAIS_A1 > :NEW.VALEUR_BIAIS_A2 OR :NEW.VALEUR_BIAIS_A2 > :NEW.VALEUR_BIAIS_A3) THEN
-    v_new_etat_experience := 'Echouée';
-    -- Ajouter l'expérience à la liste des expériences à renouveler
-    INSERT INTO LISTEATTENTE (ID_LISTE, NB_EXP_ATTENTE, EXPERIENCE, NB_EXP_DOUBLE)
-    VALUES (:NEW.ID_LISTE, 1, :NEW.ID_EXPERIENCE, 0);
-  ELSE
-    v_new_etat_experience := 'Réussie';
-  END IF;
+    -- Vérifier si la plaque ou le groupe a été refusé
+    IF (:NEW.VALEUR_BIAIS_A1 IS NULL OR :NEW.VALEUR_BIAIS_A2 IS NULL OR :NEW.VALEUR_BIAIS_A3 IS NULL) THEN
+        v_new_etat_experience := 'Echouée';
+        -- Ajouter l'expérience à la liste des expériences à renouveler
+        INSERT INTO LISTEATTENTE (ID_LISTE, NB_EXP_ATTENTE, EXPERIENCE, NB_EXP_DOUBLE)
+        VALUES (:NEW.ID_LISTE, 1, :NEW.ID_EXPERIENCE, 0);
+    ELSIF (:NEW.VALEUR_BIAIS_A1 > :NEW.VALEUR_BIAIS_A2 OR :NEW.VALEUR_BIAIS_A2 > :NEW.VALEUR_BIAIS_A3) THEN
+        v_new_etat_experience := 'Echouée';
+        -- Ajouter l'expérience à la liste des expériences à renouveler
+        INSERT INTO LISTEATTENTE (ID_LISTE, NB_EXP_ATTENTE, EXPERIENCE, NB_EXP_DOUBLE)
+        VALUES (:NEW.ID_LISTE, 1, :NEW.ID_EXPERIENCE, 0);
+    ELSE
+        v_new_etat_experience := 'Réussie';
+    END IF;
 
-  -- Mettre à jour l'état de l'expérience
-  UPDATE EXPERIENCE SET ETAT_EXPERIENCE = v_new_etat_experience WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
+    -- Mettre à jour l'état de l'expérience
+    UPDATE EXPERIENCE SET ETAT_EXPERIENCE = v_new_etat_experience WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
 
-  -- Recalculer le coefficient de surcoût si nécessaire
-  IF (v_new_etat_experience = 'Echouée') THEN
-    -- Récupérer le coefficient de surcoût actuel
-    SELECT COEFFICIENT_SURCOUT INTO v_coefficient_surcout FROM FACTURE WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
+    -- Recalculer le coefficient de surcoût si nécessaire
+    IF (v_new_etat_experience = 'Echouée') THEN
+        -- Récupérer le coefficient de surcoût actuel
+        SELECT COEFFICIENT_SURCOUT INTO v_coefficient_surcout FROM FACTURE WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
 
-    -- Code pour recalculer le coefficient de surcoût en fonction des données de la table FACTURE
-    -- Par exemple :
-    -- v_coefficient_surcout := v_coefficient_surcout * 1.1;
+        -- Code pour recalculer le coefficient de surcoût en fonction des données de la table FACTURE
+        -- Par exemple :
+        -- v_coefficient_surcout := v_coefficient_surcout * 1.1;
 
-    -- Mettre à jour le coefficient de surcoût dans la table FACTURE
-    UPDATE FACTURE SET COEFFICIENT_SURCOUT = v_coefficient_surcout WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
-  END IF;
+        -- Mettre à jour le coefficient de surcoût dans la table FACTURE
+        UPDATE FACTURE SET COEFFICIENT_SURCOUT = v_coefficient_surcout WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
+    END IF;
 END;
 /
 
