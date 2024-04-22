@@ -386,15 +386,83 @@ BEGIN
 END;
 /
 
+-- Trigger de validation de l'expérience en passant tout d'abord par la validation des slots et des groupes de slots
 CREATE OR REPLACE TRIGGER after_experience_update
 AFTER UPDATE OF ETAT_EXPERIENCE ON EXPERIENCE
 FOR EACH ROW
-WHEN (new.ETAT_EXPERIENCE = 'effectuée')
+WHEN (NEW.ETAT_EXPERIENCE = 'effectuée')
+DECLARE
+    TYPE TYPE_EXPERIENCE_TABLE IS TABLE OF EXPERIENCE.TYPE_EXPERIENCE%TYPE INDEX BY BINARY_INTEGER;
+    TYPE_EXPERIENCES TYPE_EXPERIENCE_TABLE;
+    TYPE NB_SLOTS_TABLE IS TABLE OF INTEGER INDEX BY BINARY_INTEGER;
+    NB_SLOTS_PAR_GROUPE NB_SLOTS_TABLE;
+    TYPE VALIDATED_GROUP_TABLE IS TABLE OF BOOLEAN INDEX BY BINARY_INTEGER;
+    GROUP_VALIDATION VALIDATED_GROUP_TABLE;
+    NB_REJECTED_RESULTS INTEGER := 0;
+    NB_TOTAL_RESULTS INTEGER := 0;
+    A1 CONSTANT FLOAT := 0.2; -- Valeur de a1 spécifiée dans le protocole
+    A2 CONSTANT FLOAT := 0.5; -- Valeur de a2 spécifiée dans le protocole
+    A3 CONSTANT FLOAT := 0.1; -- Valeur de a3 spécifiée dans le protocole
 BEGIN
-    -- calcul des moyennes pour faire la remontée jusqu'à la validation ou non de l'expérience
-    NULL;
+    -- Récupérer les types d'expérience associés à chaque groupe de slots
+    FOR i IN 1..:NEW.NB_GROUPE_SLOT_EXPERIENCE LOOP
+        SELECT TYPE_EXPERIENCE INTO TYPE_EXPERIENCES(i)
+        FROM GROUPESLOT
+        WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE AND ROWNUM = i;
+        
+        -- Calculer le nombre de slots par groupe pour chaque type d'expérience
+        IF TYPE_EXPERIENCES(i) = 'colorimétrique' THEN
+            NB_SLOTS_PAR_GROUPE(i) := :NEW.NB_SLOTS_PAR_GROUPE_EXPERIENCE;
+        ELSIF TYPE_EXPERIENCES(i) = 'opacimétrique' THEN
+            NB_SLOTS_PAR_GROUPE(i) := :NEW.NB_SLOTS_PAR_GROUPE_EXPERIENCE;
+        END IF;
+        
+        -- Initialiser la table de validation des groupes à TRUE
+        GROUP_VALIDATION(i) := TRUE;
+        
+        -- Pour chaque slot du groupe
+        FOR j IN 1..NB_SLOTS_PAR_GROUPE(i) LOOP
+            -- Calculs de moyenne et d'écart-type pour chaque slot en fonction du type d'expérience
+            IF TYPE_EXPERIENCES(i) = 'colorimétrique' THEN
+                IF (:NEW.COULEUR_SLOT = 'violet' AND :NEW.BM_SLOT > 0) OR
+                   (:NEW.COULEUR_SLOT = 'jaune' AND :NEW.BM_SLOT = 0) THEN
+                    NB_TOTAL_RESULTS := NB_TOTAL_RESULTS + 1;
+                    IF :NEW.ECART_TYPE_GROUPE > A2 THEN
+                        NB_REJECTED_RESULTS := NB_REJECTED_RESULTS + 1;
+                    END IF;
+                END IF;
+            ELSIF TYPE_EXPERIENCES(i) = 'opacimétrique' THEN
+                IF :NEW.RM_SLOT > 0 THEN
+                    NB_TOTAL_RESULTS := NB_TOTAL_RESULTS + 1;
+                    IF :NEW.ECART_TYPE_GROUPE > A2 THEN
+                        NB_REJECTED_RESULTS := NB_REJECTED_RESULTS + 1;
+                    END IF;
+                END IF;
+            END IF;
+        END LOOP;
+    END LOOP;
+    
+    -- Mettre en œuvre les règles de validation des résultats pour l'ensemble de l'expérience selon le protocole spécifié
+    IF NB_REJECTED_RESULTS <= A3 * NB_TOTAL_RESULTS THEN
+        FOR k IN 1..:NEW.NB_GROUPE_SLOT_EXPERIENCE LOOP
+            IF GROUP_VALIDATION(k) = FALSE THEN
+                NB_REJECTED_RESULTS := NB_REJECTED_RESULTS + 1;
+            END IF;
+        END LOOP;
+        IF NB_REJECTED_RESULTS <= A3 * :NEW.NB_GROUPE_SLOT_EXPERIENCE THEN
+            -- Mettre à jour l'état de l'expérience en conséquence (expérience acceptée)
+            UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'validée' WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
+        ELSE
+            -- Mettre à jour l'état de l'expérience en conséquence (expérience refusée)
+            UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'refusée' WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
+        END IF;
+    ELSE
+        -- Mettre à jour l'état de l'expérience en conséquence (expérience refusée)
+        UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'refusée' WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
+    END IF;
 END;
 /
+
 
 CREATE OR REPLACE TRIGGER refus_plaque_trigger
 AFTER INSERT ON T_refus_plaque
