@@ -21,7 +21,7 @@ END peupler_table_fournisseur;
 TRUNCATE TABLE Stock;
 CREATE OR REPLACE PROCEDURE P_stock deterministic AS
 BEGIN
-    INSERT INTO stock (id_stock, quantite_p384, quantite_p96, vol_dernier_tri_p384, vol_dernier_tri_p96)VALUES (1,0,0,3,7);
+    INSERT INTO stock (id_stock, quantite_p384, quantite_p96, vol_dernier_tri_p384, vol_dernier_tri_p96)VALUES (1,0,0,0,0);
     COMMIT;
 EXCEPTION
     WHEN OTHERS THEN
@@ -238,9 +238,9 @@ INSERT INTO SLOT (ID_SLOT, ID_GROUPE, COULEUR_SLOT, NUMERO_SLOT, POSITION_X_SLOT
 
 
 TRUNCATE TABLE LOT;
-TRUNCATATE TABLE STOCK;
+TRUNCATE TABLE STOCK;
 begin
-P_stock();
+--P_stock();
 P_Lot();
 end; 
 /

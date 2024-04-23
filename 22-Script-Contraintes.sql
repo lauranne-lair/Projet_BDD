@@ -463,7 +463,9 @@ BEGIN
 END;
 /
 
-
+/*----------------------------------------------------------------------------*\
+/ --Trigger qui gère le refus d'une plaque 
+/*----------------------------------------------------------------------------*\
 CREATE OR REPLACE TRIGGER refus_plaque_trigger
 AFTER INSERT ON T_refus_plaque
 FOR EACH ROW
@@ -493,7 +495,7 @@ EXCEPTION
         ROLLBACK;
 END;
 /
-
+--------------------------------------------------------------------------------
 
 /*============================================================================*/
 /*  Trigger d'automatisation qui met à jour le stock suite à l'ajout d'un lot à la BDD         /*
@@ -504,6 +506,7 @@ FOR EACH ROW
 DECLARE
     v_quantite_p96 INTEGER;
     v_quantite_p384 INTEGER;
+    
 BEGIN
     -- Récupérer la quantité de plaques à ajouter au stock
     IF :NEW.TYPE_PLAQUE_LOT = 96 THEN
@@ -514,9 +517,6 @@ BEGIN
         UPDATE STOCK
         SET QUANTITE_P384 = QUANTITE_P384 + 80
         WHERE ID_STOCK = :NEW.ID_STOCK;
-    ELSE
-        -- Type de plaque non pris en charge
-        RAISE_APPLICATION_ERROR(-20001, 'Type de plaque non valide.');
     END IF;
 EXCEPTION
     WHEN OTHERS THEN
@@ -549,7 +549,6 @@ END;
 /*==============================================================*/
 /* Trigger modification du solde équipe                   */
 /*==============================================================*/
-
 CREATE OR REPLACE TRIGGER T_APPAREIL
 BEFORE INSERT ON APPAREIL
 FOR EACH ROW
@@ -600,7 +599,6 @@ END CALCUL_FREQUENCE_OBSERVATION;
 /*==============================================================*/
 /* Trigger modification du solde équipe                   */
 /*==============================================================*/
-
 CREATE OR REPLACE TRIGGER UPDATE_SOLDE_EQUIPE
 AFTER INSERT ON FACTURE
 FOR EACH ROW
@@ -610,7 +608,6 @@ BEGIN
    WHERE ID_EQUIPE = :NEW.ID_EQUIPE;
 END;
 /
-
 
 /*==============================================================*/
 /* Trigger expérience echouée ajt liste renouveler + coefficient de surcoût                  */

@@ -154,6 +154,7 @@ TRUNCATE TABLE STOCK;
 begin 
     test_automatisation_lot_positive();
     test_automatisation_lot_negative(); 
+    commit;
 end; 
 /
     
