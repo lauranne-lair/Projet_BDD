@@ -3,7 +3,6 @@
 /* Peuplement des tables                                        */
 /*==============================================================*/
 -- FOURNISEUR 
-<<<<<<< HEAD
 CREATE OR REPLACE PROCEDURE peupler_table_fournisseur AS
 BEGIN
     DELETE FROM FOURNISSEUR;
@@ -16,10 +15,6 @@ EXCEPTION
         RAISE;
 END peupler_table_fournisseur;
 /
-=======
-INSERT INTO FOURNISSEUR (ID_FOURNISSEUR, NOM_FOURNISSEUR) VALUES (1, 'Pfizer');
-INSERT INTO FOURNISSEUR (ID_FOURNISSEUR, NOM_FOURNISSEUR) VALUES (2, 'Siemens');
->>>>>>> 27b134b37b8832306bfe87ed1ecbf30eed5c474e
 
 --STOCK
 CREATE OR REPLACE PROCEDURE peupler_table_stock AS
