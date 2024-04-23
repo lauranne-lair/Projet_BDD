@@ -295,7 +295,6 @@ create table LOT
    NB_PLAQUE            INTEGER,
    TYPE_PLAQUE_LOT      INTEGER,
    constraint PK_LOT primary key (ID_LOT),
-   
    CONSTRAINT check_nb_plaques CHECK (NB_plaque = 80),
    CONSTRAINT CHK_TYPE_PLAQUE_LOT CHECK (TYPE_PLAQUE_LOT IN (96, 384))
 );

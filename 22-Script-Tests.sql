@@ -99,38 +99,62 @@ END;
 /*----------------------------------------------------------------------------*\
 --- PROCEDURE DE TEST T_ARRIVEE_LOT ------------------------------------------*\
 /*----------------------------------------------------------------------------*\
-
 -- Procédure de Test Positive (Ajout d'un Lot avec Type de Plaque Valide)
-TRUNCATE TABLE LOT;
-TRUNCATE TABLE STOCK; 
 CREATE OR REPLACE PROCEDURE test_automatisation_lot_positive AS
+    test96 integer ;
+
 BEGIN
+    INSERT INTO STOCK (id_stock, quantite_p384, quantite_p96, vol_dernier_tri_p384, vol_dernier_tri_p96)VALUES (1,0,0,0,0);
+
     -- Insérer un nouveau lot avec un type de plaque valide (96 ou 384)
     INSERT INTO LOT (ID_LOT, ID_STOCK, DATE_LIVRAISON_LOT, NB_PLAQUE, TYPE_PLAQUE_LOT)
-    VALUES (1, 1, SYSDATE, 100, 96); -- Exemple avec un type de plaque 96
-
-    DBMS_OUTPUT.PUT_LINE('Lot inséré avec succès.');
+    VALUES (1, 1, SYSDATE, 80, 96); -- Exemple avec un type de plaque 96
 
     -- Sélectionner les informations mises à jour du stock pour vérification
-    SELECT ID_STOCK, QUANTITE_P96, QUANTITE_P384
+    SELECT QUANTITE_P96 INTO test96
     FROM STOCK
     WHERE ID_STOCK = 1; -- ID_STOCK correspondant au lot inséré
+    
+    -- Vérification si le stock est insuffisant
+    IF test96 = 0 THEN
+        RAISE_APPLICATION_ERROR(-20023, 'Erreur le stock n a pas été mis à jour');
+    END IF;
+ROLLBACK;
 END;
 /
 
 -- Procédure de Test Négative (Ajout d'un Lot avec Type de Plaque Non Valide)
 CREATE OR REPLACE PROCEDURE test_automatisation_lot_negative AS
+    test96 INTEGER ;
+
 BEGIN
+    INSERT INTO STOCK (id_stock, quantite_p384, quantite_p96, vol_dernier_tri_p384, vol_dernier_tri_p96)VALUES (1,0,0,0,0);
+
     -- Tentative d'insérer un nouveau lot avec un type de plaque non pris en charge
     INSERT INTO LOT (ID_LOT, ID_STOCK, DATE_LIVRAISON_LOT, NB_PLAQUE, TYPE_PLAQUE_LOT)
-    VALUES (2, 2, SYSDATE, 150, 200); -- Exemple avec un type de plaque non valide (200)
+    VALUES (1, 1, SYSDATE, 80, 96); -- Exemple avec un type de plaque non valide (200)
+    INSERT INTO LOT (ID_LOT, ID_STOCK, DATE_LIVRAISON_LOT, NB_PLAQUE, TYPE_PLAQUE_LOT)
+    VALUES (2, 1, SYSDATE, 80, 384); -- Exemple avec un type de plaque non valide (200)
 
-    -- Si l'insertion réussit sans erreur, afficher un message d'avertissement
-    DBMS_OUTPUT.PUT_LINE('Insertion du lot réussie, mais le type de plaque n''est pas valide.');
-
-    -- Sélectionner les informations du stock pour vérification
-    SELECT ID_STOCK, QUANTITE_P96, QUANTITE_P384
+    -- Sélectionner les informations mises à jour du stock pour vérification
+    SELECT QUANTITE_P96 INTO test96
     FROM STOCK
-    WHERE ID_STOCK = 2; -- ID_STOCK correspondant au lot inséré (si inséré)
+    WHERE ID_STOCK = 1; -- ID_STOCK correspondant au lot inséré
+    
+    -- Vérification si le stock est rempli 
+    IF test96 = 160 THEN
+        RAISE_APPLICATION_ERROR(-20024, 'Erreur le stock n a pas été mis à jour correctement');
+    END IF;
+ROLLBACK;
 END;
 /
+
+TRUNCATE TABLE LOT;
+TRUNCATE TABLE STOCK; 
+begin 
+    test_automatisation_lot_positive();
+    test_automatisation_lot_negative(); 
+end; 
+/
+    
+    

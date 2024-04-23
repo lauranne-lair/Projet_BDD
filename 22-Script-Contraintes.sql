@@ -507,29 +507,17 @@ DECLARE
 BEGIN
     -- Récupérer la quantité de plaques à ajouter au stock
     IF :NEW.TYPE_PLAQUE_LOT = 96 THEN
-        v_quantite_p96 := :NEW.NB_PLAQUE;
-        v_quantite_p384 := 0;
+        UPDATE STOCK
+        SET QUANTITE_P96 = QUANTITE_P96 + 80
+        WHERE ID_STOCK = :NEW.ID_STOCK;
     ELSIF :NEW.TYPE_PLAQUE_LOT = 384 THEN
-        v_quantite_p96 := 0;
-        v_quantite_p384 := :NEW.NB_PLAQUE;
+        UPDATE STOCK
+        SET QUANTITE_P384 = QUANTITE_P384 + 80
+        WHERE ID_STOCK = :NEW.ID_STOCK;
     ELSE
         -- Type de plaque non pris en charge
         RAISE_APPLICATION_ERROR(-20001, 'Type de plaque non valide.');
     END IF;
-
-    -- Mettre à jour le stock de plaques
-    IF v_quantite_p96 > 0 THEN
-        UPDATE STOCK
-        SET QUANTITE_P96 = QUANTITE_P96 + v_quantite_p96
-        WHERE ID_STOCK = :NEW.ID_STOCK;
-    END IF;
-
-    IF v_quantite_p384 > 0 THEN
-        UPDATE STOCK
-        SET QUANTITE_P384 = QUANTITE_P384 + v_quantite_p384
-        WHERE ID_STOCK = :NEW.ID_STOCK;
-    END IF;
-    
 EXCEPTION
     WHEN OTHERS THEN
         -- En cas d'erreur, afficher un message d'erreur
