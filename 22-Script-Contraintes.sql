@@ -494,6 +494,10 @@ EXCEPTION
 END;
 /
 
+
+/*============================================================================*/
+/*  Trigger d'automatisation qui met à jour le stock suite à l'ajout d'un lot à la BDD         /*
+/*============================================================================*/
 CREATE OR REPLACE TRIGGER T_arrivee_lot
 AFTER INSERT ON LOT
 FOR EACH ROW
@@ -532,6 +536,7 @@ EXCEPTION
         DBMS_OUTPUT.PUT_LINE('Erreur lors de l''ajout des plaques au stock : ' || SQLERRM);
 END;
 /
+--------------------------------------------------------------------------------
 
 /*==============================================================*/
 /* Trigger Facture, date non nul et égale a 01 uniquement, equipe non null                         */

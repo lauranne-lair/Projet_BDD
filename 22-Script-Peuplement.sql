@@ -2,7 +2,7 @@
 /*==============================================================*/
 /* Peuplement des tables                                        */
 /*==============================================================*/
--- FOURNISEUR 
+-- FOURNISEUR ------------------------------------------------------------------
 CREATE OR REPLACE PROCEDURE peupler_table_fournisseur AS
 BEGIN
     DELETE FROM FOURNISSEUR;
@@ -16,27 +16,50 @@ EXCEPTION
 END peupler_table_fournisseur;
 /
 
---STOCK
-CREATE OR REPLACE PROCEDURE peupler_table_stock AS
+--STOCK ------------------------------------------------------------------------
+-- Cette procédure de peuplement crée 5 stocks différents vides 
+TRUNCATE TABLE Stock;
+CREATE OR REPLACE PROCEDURE P_stock deterministic AS
 BEGIN
-    FOR i IN 1..10 LOOP
-        INSERT INTO stock (id_stock, quantite_p384, quantite_p96, vol_dernier_tri_p384, vol_dernier_tri_p96)
-        VALUES (i, ROUND(DBMS_RANDOM.VALUE(1, 100)), ROUND(DBMS_RANDOM.VALUE(1, 100)), ROUND(DBMS_RANDOM.VALUE(1, 100)), ROUND(DBMS_RANDOM.VALUE(1, 100)));
-    END LOOP;
+    INSERT INTO stock (id_stock, quantite_p384, quantite_p96, vol_dernier_tri_p384, vol_dernier_tri_p96)VALUES (1,0,0,3,7);
     COMMIT;
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+        ROLLBACK;
 END;
 /
+--------------------------------------------------------------------------------
 
---LOT
-CREATE OR REPLACE PROCEDURE peupler_table_lot AS
+--LOT --------------------------------------------------------------------------
+-- Cette procédure permet de créer 2 lots dans le stock 1 
+TRUNCATE TABLE LOT;
+CREATE OR REPLACE PROCEDURE P_Lot AS
+    v_type_plaque INTEGER;  -- Déclarer une variable pour stocker le type de plaque
+    
 BEGIN
-    FOR i IN 1..10 LOOP 
-        INSERT INTO lot (id_lot, id_stock, date_livraison_lot, nb_plaque)
-        VALUES (i, ROUND(DBMS_RANDOM.VALUE(1, 10)), SYSDATE - i, 80); 
+    FOR i IN 1..5 LOOP
+        -- Générer un nombre aléatoire entre 1 et 2 pour choisir le type de plaque
+        IF ROUND(DBMS_RANDOM.VALUE(1, 2)) = 1 THEN
+            v_type_plaque := 96;  -- Si le nombre est 1, choisir le type 96
+        ELSE
+            v_type_plaque := 384; -- Sinon, choisir le type 384
+        END IF;
+
+        -- Insérer une ligne dans la table lot avec le type de plaque aléatoire
+        INSERT INTO lot (id_lot, id_stock, date_livraison_lot, nb_plaque, type_plaque_lot)
+        VALUES (i, 1, SYSDATE, 80, v_type_plaque); 
     END LOOP;
-    COMMIT;
+    
+    COMMIT; -- Valider les modifications
+EXCEPTION
+    WHEN OTHERS THEN
+        -- En cas d'erreur, afficher le message d'erreur
+        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+        ROLLBACK; -- Annuler les modifications en cas d'erreur
 END;
 /
+--------------------------------------------------------------------------------
 
 --ACHETER
 INSERT INTO ACHETER (ID_FOURNISSEUR, ID_LOT) VALUES (1, 1);
@@ -210,5 +233,15 @@ INSERT INTO GROUPESLOT (ID_GROUPE, ID_EXPERIENCE, ID_PLAQUE, MOYENNE_GROUPE, ECA
 INSERT INTO SLOT (ID_SLOT, ID_GROUPE, COULEUR_SLOT, NUMERO_SLOT, POSITION_X_SLOT, POSITION_Y_SLOT, RM_SLOT, RD_SLOT, VM_SLOT, VD_SLOT, BM_SLOT, BD_SLOT, TM_SLOT, TD_SLOT) VALUES (1, 1, 'Couleur', 1, 10, 10, 1, 2, 3, 4, 5, 6, 7, 8);
 INSERT INTO SLOT (ID_SLOT, ID_GROUPE, COULEUR_SLOT, NUMERO_SLOT, POSITION_X_SLOT, POSITION_Y_SLOT, RM_SLOT, RD_SLOT, VM_SLOT, VD_SLOT, BM_SLOT, BD_SLOT, TM_SLOT, TD_SLOT) VALUES (2, 1, 'Couleur', 2, 20, 20, 1, 2, 3, 4, 5, 6, 7, 8);
 -- trigger d'automatisation pour ces deux la 
+
+
+
+
+
+begin
+P_stock();
+P_Lot();
+end; 
+/
 
 Commit;

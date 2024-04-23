@@ -81,6 +81,7 @@ DROP SEQUENCE seq_id_lot;
 DROP SEQUENCE seq_id_plaque;
 DROP SEQUENCE seq_id_slot;
 DROP SEQUENCE seq_id_technicien;
+DROP SEQUENCE seq_id_stock;
 
 
 /*==============================================================*/
@@ -294,6 +295,7 @@ create table LOT
    NB_PLAQUE            INTEGER,
    TYPE_PLAQUE_LOT      INTEGER,
    constraint PK_LOT primary key (ID_LOT),
+   
    CONSTRAINT check_nb_plaques CHECK (NB_plaque = 80),
    CONSTRAINT CHK_TYPE_PLAQUE_LOT CHECK (TYPE_PLAQUE_LOT IN (96, 384))
 );
@@ -443,6 +445,7 @@ alter table SLOT
 alter table TECHNICIEN
    add constraint FK_TECHNICI_APPARTENI_EQUIPE foreign key (ID_EQUIPE)
       references EQUIPE (ID_EQUIPE);
+      
 
 /*==============================================================*/
 /* Séquence pour l'autoincrémentation                           */
@@ -459,6 +462,7 @@ CREATE SEQUENCE seq_id_lot START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE seq_id_plaque START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE seq_id_slot START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE seq_id_technicien START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE seq_id_stock START WITH 1 INCREMENT BY 1;
 
 /*==============================================================*/
 /* Modification des tables pour utiliser les séquences                                        */
@@ -474,6 +478,6 @@ ALTER TABLE LOT MODIFY (ID_LOT DEFAULT seq_id_lot.NEXTVAL);
 ALTER TABLE PLAQUE MODIFY (ID_PLAQUE DEFAULT seq_id_plaque.NEXTVAL);
 ALTER TABLE SLOT MODIFY (ID_SLOT DEFAULT seq_id_slot.NEXTVAL);
 ALTER TABLE TECHNICIEN MODIFY (ID_TECHNICIEN DEFAULT seq_id_technicien.NEXTVAL);
-
+ALTER TABLE STOCK MODIFY (ID_STOCK DEFAULT seq_id_stock.NEXTVAL);
 
 Commit;
