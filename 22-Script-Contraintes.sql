@@ -327,7 +327,7 @@ FOR EACH ROW
 DECLARE
     v_nb_exp_en_attente NUMBER;
     v_nb_exp_doublees NUMBER;
-    v_coeff_prix_prio NUMBER;
+    v_coeff_prix_prio NUMBER;F
 BEGIN
     SELECT COUNT(*) INTO v_nb_exp_en_attente FROM EXPERIENCE WHERE ETAT_EXPERIENCE = 'en attente';
     SELECT COUNT(*) INTO v_nb_exp_doublees FROM EXPERIENCE WHERE ETAT_EXPERIENCE = 'en attente' AND PRIORITE_EXPERIENCE > :NEW.PRIORITE_EXPERIENCE;
@@ -694,4 +694,29 @@ BEGIN
     -- Si vous souhaitez supprimer les expériences associées à l'appareil au lieu de les mettre à jour, utilisez la ligne suivante :
     -- DELETE FROM EXPERIENCE WHERE ID_APPAREIL = :OLD.ID_APPAREIL;
 END;
+
+
+CREATE OR REPLACE TRIGGER Acceptation_biais
+BEFORE INSERT OR UPDATE OF VALEUR_BIAIS_A1, VALEUR_BIAIS_A2, VALEUR_BIAIS_A3, ECART_TYPE_EXPERIENCE ON Experience
+FOR EACH ROW
+DECLARE
+  v_resultat_experience VARCHAR2(25);
+BEGIN
+  IF :NEW.ECART_TYPE_EXPERIENCE < :NEW.VALEUR_BIAIS_A1 THEN
+    v_resultat_experience := 'Accepté';
+  ELSIF :NEW.VALEUR_BIAIS_A1 <= :NEW.ECART_TYPE_EXPERIENCE AND :NEW.ECART_TYPE_EXPERIENCE <= :NEW.VALEUR_BIAIS_A2 THEN
+    v_resultat_experience := 'Refusé';
+  ELSIF :NEW.VALEUR_BIAIS_A2 < :NEW.ECART_TYPE_EXPERIENCE THEN
+    v_resultat_experience := 'Plaque refusée';
+  END IF;
+
+  :NEW.ETAT_EXPERIENCE := v_resultat_experience;
+END;
+/
+
+
+
+
+
+
 
