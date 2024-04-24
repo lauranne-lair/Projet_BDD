@@ -608,17 +608,7 @@ END;
 /
 
 
-/*==============================================================*/
-/* Trigger modification du solde équipe                   */
-/*==============================================================*/
-CREATE OR REPLACE FUNCTION CALCUL_FREQUENCE_OBSERVATION(d IN NUMBER, f IN NUMBER)
-RETURN NUMBER IS
-  result NUMBER;
-BEGIN
-  result := TRUNC(d / f);
-  RETURN result;
-END CALCUL_FREQUENCE_OBSERVATION;
-/
+
 
 /*==============================================================*/
 /* Trigger modification du solde équipe                   */
@@ -634,14 +624,13 @@ END;
 /
 
 /*==============================================================*/
-/* Trigger expérience echouée ajt liste renouveler + coefficient de surcoût                  */
+/* Trigger expérience echouée ajt liste renouveler + coefficient de surcoût    à faire               */
 /*==============================================================*/
-CREATE OR REPLACE TRIGGER Contrainte_statut_experience
+/*CREATE OR REPLACE TRIGGER Contrainte_statut_experience
 AFTER INSERT OR UPDATE ON EXPERIENCE
 FOR EACH ROW
 DECLARE
     v_new_etat_experience EXPERIENCE.ETAT_EXPERIENCE%TYPE;
-    v_coefficient_surcout NUMBER;
 BEGIN
     -- Vérifier si la plaque ou le groupe a été refusé
     IF (:NEW.VALEUR_BIAIS_A1 IS NULL OR :NEW.VALEUR_BIAIS_A2 IS NULL OR :NEW.VALEUR_BIAIS_A3 IS NULL) THEN
@@ -662,19 +651,20 @@ BEGIN
     UPDATE EXPERIENCE SET ETAT_EXPERIENCE = v_new_etat_experience WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
 
     -- Recalculer le coefficient de surcoût si nécessaire
-    IF (v_new_etat_experience = 'Echouée') THEN
-        -- Récupérer le coefficient de surcoût actuel
-        SELECT COEFFICIENT_SURCOUT INTO v_coefficient_surcout FROM FACTURE WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
-
+    --IF (v_new_etat_experience = 'Echouée') THEN
         -- Code pour recalculer le coefficient de surcoût en fonction des données de la table FACTURE
         -- Par exemple :
-        -- v_coefficient_surcout := v_coefficient_surcout * 1.1;
+        -- v_coefficient_surcout := v_coefficient_surcout * 1.1; -- à modifier
 
         -- Mettre à jour le coefficient de surcoût dans la table FACTURE
-        UPDATE FACTURE SET COEFFICIENT_SURCOUT = v_coefficient_surcout WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
-    END IF;
+        -- UPDATE FACTURE SET COEFFICIENT_SURCOUT = v_coefficient_surcout WHERE ID_EQUIPE = :NEW.ID_EQUIPE;
+    --END IF;
+
 END;
 /
+*/
+
+
 
 -- Suppression des groupes de slots et des slots associés à une plaque lorsque celle-ci est supprimée
 CREATE OR REPLACE TRIGGER T_suppression_plaque
@@ -695,7 +685,7 @@ BEGIN
     -- DELETE FROM EXPERIENCE WHERE ID_APPAREIL = :OLD.ID_APPAREIL;
 END;
 
-
+-- Trigger pourrespecter les règle imposé sur les valeurs entre les biais
 CREATE OR REPLACE TRIGGER Acceptation_biais
 BEFORE INSERT OR UPDATE OF VALEUR_BIAIS_A1, VALEUR_BIAIS_A2, VALEUR_BIAIS_A3, ECART_TYPE_EXPERIENCE ON Experience
 FOR EACH ROW
@@ -713,6 +703,154 @@ BEGIN
   :NEW.ETAT_EXPERIENCE := v_resultat_experience;
 END;
 /
+
+
+
+--  trigger met à jour l'état de l'expérience et recalcule le coefficient de surcoût lorsqu'une plaque ou un groupe est refusé
+CREATE OR REPLACE TRIGGER Contrainte_statut_experience_plaque
+AFTER UPDATE OF etat_plaque ON plaque
+FOR EACH ROW
+DECLARE
+  v_experience_id experience.id_experience%TYPE;
+  v_refus_count NUMBER;
+  v_total_count NUMBER;
+BEGIN
+  -- Vérifier si la mise à jour concerne un refus
+  IF :NEW.etat_plaque = 'REFUS' THEN
+    -- Récupérer l'ID de l'expérience concernée
+    SELECT e.id_experience INTO v_experience_id
+    FROM experience e
+    JOIN groupeslot g ON e.id_experience = g.id_experience
+    JOIN slot s ON g.id_groupe = s.id_groupe
+    JOIN plaque p ON s.id_plaque = p.id_plaque -- Ajouter cette ligne
+    WHERE p.id_plaque = :NEW.id_plaque;
+
+    -- Compter le nombre total de plaques et groupes, ainsi que le nombre de refus
+    SELECT COUNT(*), SUM(CASE WHEN p.etat_plaque = 'REFUS' OR g.validite_groupe = 0 THEN 1 ELSE 0 END)
+    INTO v_total_count, v_refus_count
+    FROM groupeslot g
+    JOIN slot s ON g.id_groupe = s.id_groupe
+    JOIN plaque p ON s.id_plaque = p.id_plaque
+    WHERE g.id_experience = v_experience_id;
+
+    -- Mettre à jour le statut de l'expérience et recalculer le coefficient de surcoût
+    UPDATE experience
+    SET etat_experience = 'ECHOUEE',
+        coeff_prix_prio_experience = v_refus_count / v_total_count
+    WHERE id_experience = v_experience_id;
+  END IF;
+END;
+/
+
+
+
+/*==============================================================*/
+--Vérifie si le produit du nombre de renouvellements d'expérience par la valeur du biais A3  est inférieur à la valeur du biais A3. 
+--En fonction du résultat, il met à jour l'état de l'expérience  en 'Acceptée' ou 'Refusée'.
+/*==============================================================*/
+CREATE OR REPLACE TRIGGER Contrainte_nb_releves_photo
+BEFORE INSERT OR UPDATE OF NB_RENOUVELLEMENT_EXPERIENCE ON Experience
+FOR EACH ROW
+DECLARE
+  v_etat_experience VARCHAR2(20);
+  v_f NUMBER;
+BEGIN
+  -- Récupérer la valeur de f à partir de la table Parametres
+  SELECT p.valeur INTO v_f
+  FROM Parametres p
+  WHERE p.nom = 'FREQUENCE_OBSERVATION';
+
+  -- Calculer le nombre de résultats photométriques refusés (a3N)
+  v_etat_experience := :NEW.ETAT_EXPERIENCE;
+
+  -- Vérifier si le nombre de résultats refusés est inférieur à a3N
+  IF :NEW.VALEUR_BIAIS_A3 * :NEW.NB_RENOUVELLEMENT_EXPERIENCE < v_f THEN
+    v_etat_experience := 'Acceptée';
+  ELSE
+    v_etat_experience := 'Refusée';
+  END IF;
+
+  -- Mettre à jour l'état de l'expérience avant l'insertion ou la mise à jour
+  :NEW.ETAT_EXPERIENCE := v_etat_experience;
+END;
+/
+-- a finir
+
+
+/*==============================================================*/
+/* Trigger modification du solde équipe                   */
+/*==============================================================*/
+CREATE OR REPLACE FUNCTION Calcul_frequence_observation(
+    p_id_experience IN NUMBER
+) RETURN NUMBER IS
+    d NUMBER;
+    f NUMBER;
+    result NUMBER;
+BEGIN
+    -- Retrieve the values of d and f from the Experience table
+    SELECT DUREE_EXPERIENCE, FREQUENCE_EXPERIENCE
+    INTO d, f
+    FROM Experience
+    WHERE ID_EXPERIENCE = p_id_experience;
+
+    -- Calculate the result as d/f rounded to the nearest integer
+    result := ROUND(d / f);
+
+    -- Check if the result is an integer
+    IF result != TRUNC(result) THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Invalid frequency value: ' || result);
+    END IF;
+
+    -- Return the result
+    RETURN result;
+END;
+/
+
+
+CREATE OR REPLACE TRIGGER Contrainte_nb_releves_photo
+BEFORE INSERT OR UPDATE ON Experience
+FOR EACH ROW
+DECLARE
+    d NUMBER;
+    f NUMBER;
+    a3 NUMBER;
+    n NUMBER;
+    rejected_count NUMBER;
+    accepted_count NUMBER;
+BEGIN
+    -- Retrieve the values of d, f, and a3 from the current row
+    d := :NEW.DUREE_EXPERIENCE;
+    f := :NEW.FREQUENCE_EXPERIENCE;
+    a3 := :NEW.VALEUR_BIAIS_A3;
+
+    -- Calculate the total number of photometric results
+    n := ROUND(d / f);
+
+    -- Calculate the number of accepted and rejected photometric results
+    SELECT COUNT(CASE
+                WHEN some_other_column IS NOT NULL THEN 1
+              END) accepted_count,
+           COUNT(CASE
+                WHEN some_other_column IS NULL THEN 1
+              END) rejected_count
+    INTO accepted_count, rejected_count
+    FROM (
+        SELECT some_other_column
+        FROM Experience
+        WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE
+        ORDER BY DEB_EXPERIENCE
+    )
+    WHERE ROWNUM <= n;
+
+    -- Check if the number of rejected results is less than a3N
+    IF rejected_count < a3 * n THEN
+        :NEW.ETAT_EXPERIENCE := 'Acceptée';
+    ELSE
+        :NEW.ETAT_EXPERIENCE := 'Refusée';
+    END IF;
+END;
+/
+
 
 
 
