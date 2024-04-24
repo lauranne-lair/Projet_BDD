@@ -167,6 +167,8 @@ create table EXPERIENCE
    ID_LISTE             INTEGER,
    ID_TECHNICIEN        INTEGER              not null,
    ID_CHERCHEUR         INTEGER              not null,
+   TYPE_PLAQUE VARCHAR2(10),
+   ID_PLAQUE NUMBER,
    TYPE_EXPERIENCE      VARCHAR2(14),
    ETAT_EXPERIENCE      VARCHAR2(25),
    NB_GROUPE_SLOT_EXPERIENCE INTEGER,
@@ -252,9 +254,11 @@ create table GROUPESLOT
    ID_GROUPE            INTEGER              not null,
    ID_EXPERIENCE        INTEGER              not null,
    ID_PLAQUE            INTEGER              not null,
+   NB_SLOTS NUMBER,
    MOYENNE_GROUPE       INTEGER,
    ECART_TYPE_GROUPE    INTEGER,
    VALIDITE_GROUPE      INTEGER,
+   RAPPORT_T NUMBER(10, 2),
    constraint PK_GROUPESLOT primary key (ID_GROUPE)
 );
 
@@ -347,6 +351,7 @@ create table SLOT
    BD_SLOT              INTEGER,
    TM_SLOT              INTEGER,
    TD_SLOT              INTEGER,
+   VALIDE               VARCHAR2(10),
    constraint PK_SLOT primary key (ID_SLOT)
 );
 
@@ -383,6 +388,23 @@ create table TECHNICIEN
 );
 
 /*==============================================================*/
+/* Table : RESULTAT_EXPERIENCE                                  */
+/*==============================================================*/
+CREATE TABLE RESULTAT_EXPERIENCE (
+  ID_RESULTAT INTEGER NOT NULL,
+  ID_EXPERIENCE INTEGER NOT NULL,
+  MOYENNE NUMBER(10, 2),
+  ECART_TYPE NUMBER(10, 2),
+  CONSTRAINT PK_RESULTAT_EXPERIENCE PRIMARY KEY (ID_RESULTAT),
+  CONSTRAINT FK_RESULTAT_EXPERIENCE_EXPERIENCE FOREIGN KEY (ID_EXPERIENCE) REFERENCES EXPERIENCE (ID_EXPERIENCE)
+);
+
+CREATE SEQUENCE seq_id_resultat_experience START WITH 1 INCREMENT BY 1;
+
+ALTER TABLE RESULTAT_EXPERIENCE MODIFY (ID_RESULTAT DEFAULT seq_id_resultat_experience.NEXTVAL);
+
+
+/*==============================================================*/
 /* Index : APPARTENIR_FK                                        */
 /*==============================================================*/
 create index APPARTENIR_FK on TECHNICIEN (
@@ -416,6 +438,11 @@ alter table EXPERIENCE
 alter table EXPERIENCE
    add constraint FK_EXPERIEN_REALISER_TECHNICI foreign key (ID_TECHNICIEN)
       references TECHNICIEN (ID_TECHNICIEN);
+      
+
+ALTER TABLE EXPERIENCE
+    ADD CONSTRAINT FK_EXPERIENCE_APPAREIL FOREIGN KEY (ID_APPAREIL)
+        REFERENCES APPAREIL (ID_APPAREIL);
 
 alter table FACTURE
    add constraint FK_FACTURE_PAYER_EQUIPE foreign key (ID_EQUIPE)
@@ -428,6 +455,11 @@ alter table GROUPESLOT
 alter table GROUPESLOT
    add constraint FK_GROUPESL_REGROUPER_EXPERIEN foreign key (ID_EXPERIENCE)
       references EXPERIENCE (ID_EXPERIENCE);
+      
+
+ALTER TABLE GROUPESLOT
+    ADD CONSTRAINT FK_GROUPESLOT_PLAQUE FOREIGN KEY (ID_PLAQUE)
+        REFERENCES PLAQUE (ID_PLAQUE);
 
 alter table LOT
    add constraint FK_LOT_STOCKER_STOCK foreign key (ID_STOCK)
@@ -440,11 +472,19 @@ alter table PLAQUE
 alter table SLOT
    add constraint FK_SLOT_ASSEMBLER_GROUPESL foreign key (ID_GROUPE)
       references GROUPESLOT (ID_GROUPE);
+      
+ALTER TABLE SLOT
+    ADD CONSTRAINT FK_SLOT_PLAQUE FOREIGN KEY (ID_PLAQUE)
+        REFERENCES PLAQUE (ID_PLAQUE);
+        
+ALTER TABLE SLOT
+    ADD CONSTRAINT FK_SLOT_GROUPESLOT FOREIGN KEY (ID_GROUPE)
+        REFERENCES GROUPESLOT (ID_GROUPE);
 
 alter table TECHNICIEN
    add constraint FK_TECHNICI_APPARTENI_EQUIPE foreign key (ID_EQUIPE)
       references EQUIPE (ID_EQUIPE);
-      
+          
 
 /*==============================================================*/
 /* Séquence pour l'autoincrémentation                           */

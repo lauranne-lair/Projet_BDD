@@ -1,4 +1,4 @@
-CREATE OR REPLACE PROCEDURE Test_T_rachat_stock AS 
+CREATE OR REPLACE PROCEDURE Test_T_rachat_stock AS
     volume_utilise_trimestre NUMBER; -- Variable pour stocker le volume utilisé ce trimestre
     stock_actuel NUMBER; -- Variable pour stocker le stock actuel de plaques
 BEGIN
@@ -10,15 +10,15 @@ BEGIN
     INSERT INTO LOT (ID_LOT, DATE_LIVRAISON_LOT, NB_PLAQUE)
     VALUES (1, TO_DATE('2024-03-28', 'YYYY-MM-DD'), 50);
 
-    -- Exécuter le trigger en insérant une ligne dans la table plaque pour lancer le trigger 
+    -- Exécuter le trigger en insérant une ligne dans la table plaque pour lancer le trigger
     INSERT INTO PLAQUE (ID_PLAQUE, ID_LOT, TYPE_PLAQUE, NB_EXPERIENCE_PLAQUE, ETAT_PLAQUE)
-    VALUES (2, 2, '1', 100, 'Utilisée'); 
+    VALUES (2, 2, '1', 100, 'Utilisée');
 
-    -- Vérification si bon ajout 
+    -- Vérification si bon ajout
     SELECT COUNT(*) INTO stock_actuel FROM LOT;
     SELECT SUM(NB_EXPERIENCE_PLAQUE) INTO volume_utilise_trimestre
     FROM PLAQUE
-    WHERE ID_LOT IN ( 
+    WHERE ID_LOT IN (
         SELECT ID_LOT FROM LOT WHERE DATE_LIVRAISON_LOT >= TRUNC(ADD_MONTHS(TO_DATE('2024-03-28','YYYY-MM-DD'), -3), 'Q') AND DATE_LIVRAISON_LOT < TRUNC(TO_DATE('2024-03-28', 'YYYY-MM-DD'), 'Q')
     );
 
@@ -26,40 +26,46 @@ BEGIN
     IF stock_actuel < volume_utilise_trimestre THEN
         RAISE_APPLICATION_ERROR(-20022, 'Le stock de plaques est insuffisant, veuillez commander 80 plaques supplémentaires.');
     END IF;
-ROLLBACK;
+    -- Supprimer les données de test
+    DELETE FROM PLAQUE WHERE ID_PLAQUE IN (1, 2);
+    DELETE FROM LOT WHERE ID_LOT = 1;
 END;
 /
 
 CREATE OR REPLACE PROCEDURE Test_T_panne_appareil AS
-	--Déclaration des variables de test
-	val_id_appareil APPAREIL.ID_APPAREIL%TYPE;
-	val_id_experience EXPERIENCE.ID_EXPERIENCE%TYPE;
-val_statut_experience EXPERIENCE.ETAT_EXPERIENCE%TYPE;
+    --Déclaration des variables de test
+    val_id_appareil APPAREIL.ID_APPAREIL%TYPE;
+    val_id_experience EXPERIENCE.ID_EXPERIENCE%TYPE;
+    val_statut_experience EXPERIENCE.ETAT_EXPERIENCE%TYPE;
 BEGIN
-	--Sélection d’un appareil pour le test
-	SELECT id_appareil INTO val_id_appareil FROM APPAREIL WHERE ROWNUM = 1;
-	--Insertion d’une expérience programmée qui utilise l’appareil sélectionné
-	INSERT INTO EXPERIENCE (ID_EXPERIENCE, ID_APPAREIL, ETAT_EXPERIENCE) VALUES (1, val_id_appareil, ‘Programmée’);
+    --Sélection d’un appareil pour le test
+    SELECT id_appareil INTO val_id_appareil FROM APPAREIL WHERE ROWNUM = 1;
+    
+    --Insertion d’une expérience programmée qui utilise l’appareil sélectionné
+    INSERT INTO EXPERIENCE (ID_EXPERIENCE, ID_APPAREIL, ETAT_EXPERIENCE) VALUES (1, val_id_appareil, 'Programmée');
 
-	--Sélection de l’identifiant de l’expérience insérée
-	SELECT ID_EXPERIENCE INTO val_id_experience FROM EXPERIENCE WHERE ROWNUM = 1;
+    --Sélection de l’identifiant de l’expérience insérée
+    SELECT ID_EXPERIENCE INTO val_id_experience FROM EXPERIENCE WHERE ROWNUM = 1;
 
-	--Mettre la disponibilité de l’appareil à ‘En panne’
-	UPDATE APPAREIL SET DISPO_APPAREIL = 0 WHERE ID_APPREIL = val_id_appareil;
-	--Vérification de la mise à jour du statut de l’expérience qui doit être passée à ‘A programmer’
-	SELECT ETAT_EXPERIENCE INTO val_statut_experience FROM EXPERIENCE WHERE ID_EXPERIENCE = val_id_experience;
+    --Mettre la disponibilité de l’appareil à ‘En panne’
+    UPDATE APPAREIL SET DISPO_APPAREIL = 0 WHERE ID_APPAREIL = val_id_appareil;
+    
+    --Vérification de la mise à jour du statut de l’expérience qui doit être passée à ‘A programmer’
+    SELECT ETAT_EXPERIENCE INTO val_statut_experience FROM EXPERIENCE WHERE ID_EXPERIENCE = val_id_experience;
 
-	--Vérification du résultat du trigger
-	IF val_statut_experience != ‘A programmer’ THEN
-		RAISE_APPLICATION_ERROR(-20001, ‘Test du trigger T_panne_app est un échec’);
-	END IF;
-ROLLBACK;
+    --Vérification du résultat du trigger
+    IF val_statut_experience != 'A programmer' THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Test du trigger T_panne_app est un échec');
+    END IF;
+
+    ROLLBACK;
 END;
 /
 
 CREATE OR REPLACE PROCEDURE Test_T_refus_plaque AS
-  val_id_plaque VARCHAR2(100); -- Variable pour stocker l'identifiant de la plaque
-  val_id_exp INTEGER; -- Variable pour stocker l'identifiant de l'expérience
+  val_id_plaque PLAQUE.ID_PLAQUE%TYPE; -- Variable pour stocker l'identifiant de la plaque
+  val_id_exp EXPERIENCE.ID_EXPERIENCE%TYPE; -- Variable pour stocker l'identifiant de l'expérience
+  val_statut_experience EXPERIENCE.statut%TYPE; -- Variable pour stocker le statut de l'expérience
 
 BEGIN
   -- Supposons que le refus de plaque ou de groupe soit détecté
@@ -69,7 +75,7 @@ BEGIN
   -- Sélection d'une plaque existante
   SELECT ID_PLAQUE INTO val_id_plaque
   FROM PLAQUE
-  WHERE ID_PLAQUE= 1; -- Supposons que nous sélectionnons la première plaque
+  WHERE ID_PLAQUE = 1; -- Supposons que nous sélectionnons la première plaque
 
   -- Sélection d'une expérience existante
   SELECT ID_EXPERIENCE INTO val_id_exp
@@ -79,18 +85,22 @@ BEGIN
   -- Simuler un refus de plaque ou de groupe en mettant à jour le statut de l'expérience
   UPDATE EXPERIENCE
   SET statut = 'Echoué'
-  WHERE  val_id_plaque= val_id_exp;
+  WHERE ID_PLAQUE = val_id_plaque AND ID_EXPERIENCE = val_id_exp;
 
   -- Ajouter l'expérience à renouveler
-  INSERT INTO LISTEATTENTE()
+  INSERT INTO LISTEATTENTE(ID_EXPERIENCE)
   VALUES (val_id_exp);
 
+  -- Vérification du résultat du trigger
+  SELECT statut INTO val_statut_experience
+  FROM EXPERIENCE
+  WHERE ID_EXPERIENCE = val_id_exp;
 
---Vérification du résultat du trigger
-	IF val_statut_experience != ‘Échoué’ THEN
-		RAISE_APPLICATION_ERROR(-20001, ‘Test du trigger T_refus_plaque est un échec’);
-	END IF;
-ROLLBACK; 
+  IF val_statut_experience != 'Echoué' THEN
+    RAISE_APPLICATION_ERROR(-20001, 'Test du trigger T_refus_plaque est un échec');
+  END IF;
+
+  ROLLBACK;
 END;
 /
 
@@ -156,6 +166,97 @@ begin
     test_automatisation_lot_negative(); 
     commit;
 end; 
+/
+
+/*Procédure de tests autour de l'expérience*/
+CREATE OR REPLACE PROCEDURE test_creer_experience AS
+  v_id_experience NUMBER;
+BEGIN
+  -- Insérer une expérience dans la table EXPERIENCE
+  INSERT INTO EXPERIENCE (ID_LISTE, ID_TECHNICIEN, ID_CHERCHEUR, TYPE_PLAQUE, NB_GROUPE_SLOT_EXPERIENCE, NB_SLOTS_PAR_GROUPE_EXPERIENCE, DUREE_EXPERIENCE, PRIORITE_EXPERIENCE, FREQUENCE_EXPERIENCE, REPROGR_MAX_EXPERIENCE, VALEUR_BIAIS_A1, VALEUR_BIAIS_A2, VALEUR_BIAIS_A3)
+  VALUES (1, 1, 1, 96, 2, 3, 10, 1, 2, 1, 0.1, 0.2, 0.3)
+  RETURNING ID_EXPERIENCE INTO v_id_experience;
+
+  -- Vérifier que l'expérience a été créée en récupérant son ID
+  IF v_id_experience IS NULL THEN
+    RAISE_APPLICATION_ERROR(-20000, 'Echec de la création de l''expérience');
+  END IF;
+
+  -- Vérifier que le trigger T_lancement_experience a bien créé les groupes de slots et les slots correspondants
+  IF (SELECT COUNT(*) FROM GROUPESLOT WHERE ID_EXPERIENCE = v_id_experience) != 2 THEN
+    RAISE_APPLICATION_ERROR(-20000, 'Nombre de groupes de slots incorrect');
+  END IF;
+
+  IF (SELECT COUNT(*) FROM SLOT WHERE ID_GROUPE IN (SELECT ID_GROUPE FROM GROUPESLOT WHERE ID_EXPERIENCE = v_id_experience)) != 6 THEN
+    RAISE_APPLICATION_ERROR(-20000, 'Nombre de slots incorrect');
+  END IF;
+END;
+/
+
+CREATE OR REPLACE PROCEDURE test_maj_statut_experience AS
+  v_id_experience NUMBER;
+BEGIN
+  -- Insérer une expérience dans la table EXPERIENCE
+  INSERT INTO EXPERIENCE (ID_LISTE, ID_TECHNICIEN, ID_CHERCHEUR, TYPE_PLAQUE, NB_GROUPE_SLOT_EXPERIENCE, NB_SLOTS_PAR_GROUPE_EXPERIENCE, DUREE_EXPERIENCE, PRIORITE_EXPERIENCE, FREQUENCE_EXPERIENCE, REPROGR_MAX_EXPERIENCE, VALEUR_BIAIS_A1, VALEUR_BIAIS_A2, VALEUR_BIAIS_A3)
+  VALUES (1, 1, 1, 96, 2, 3, 10, 1, 2, 1, 0.1, 0.2, 0.3)
+  RETURNING ID_EXPERIENCE INTO v_id_experience;
+
+  -- Mettre à jour le statut de l'expérience
+  UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'Terminée' WHERE ID_EXPERIENCE = v_id_experience;
+
+  -- Vérifier que le statut a bien été mis à jour
+  IF (SELECT ETAT_EXPERIENCE FROM EXPERIENCE WHERE ID_EXPERIENCE = v_id_experience) != 'Terminée' THEN
+    RAISE_APPLICATION_ERROR(-20000, 'Echec de la mise à jour du statut de l''expérience');
+  END IF;
+END;
+/
+
+CREATE OR REPLACE PROCEDURE test_supp_experience AS
+  v_experience_id experience.id_experience%TYPE;
+BEGIN
+  -- Insérer une expérience à supprimer
+  INSERT INTO experience(id_liste, id_technicien, id_chercheur, type_plaque, nb_groupe_slot_experience, nb_slots_par_groupe_experience, duree_experience, priorite_experience, frequence_experience, reprogr_max_experience, valeur_biais_a1, valeur_biais_a2, valeur_biais_a3)
+  VALUES (1, 1, 1, '96', 1, 1, 1, 1, 1, 1, 0.1, 0.2, 0.3)
+  RETURNING id_experience INTO v_experience_id;
+
+  -- Supprimer l'expérience
+  DELETE FROM experience WHERE id_experience = v_experience_id;
+
+  -- Vérifier que l'expérience a été supprimée
+  IF SQL%ROWCOUNT = 0 THEN
+    RAISE_APPLICATION_ERROR(-20001, 'Échec de la suppression de l''expérience');
+  END IF;
+
+  -- Vérifier que les groupes de slots et les slots associés ont été supprimés
+  IF EXISTS (SELECT 1 FROM groupeslot WHERE id_experience = v_experience_id) THEN
+    RAISE_APPLICATION_ERROR(-20002, 'Échec de la suppression des groupes de slots associés à l''expérience');
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM slot WHERE id_groupe IN (SELECT id_groupe FROM groupeslot WHERE id_experience = v_experience_id)) THEN
+    RAISE_APPLICATION_ERROR(-20003, 'Échec de la suppression des slots associés aux groupes de slots de l''expérience');
+  END IF;
+END;
+/
+
+CREATE OR REPLACE PROCEDURE test_delete_appareil AS
+  v_appareil_id appareil.id_appareil%TYPE;
+BEGIN
+  -- Insérer un appareil à supprimer
+  INSERT INTO appareil(id_liste, etat_appareil, position_appareil) VALUES (1, 'disponible', 1) RETURNING id_appareil INTO v_appareil_id;
+
+  -- Supprimer l'appareil
+  DELETE FROM appareil WHERE id_appareil = v_appareil_id;
+
+  -- Vérifier que l'appareil a été supprimé
+  IF SQL%ROWCOUNT = 0 THEN
+    RAISE_APPLICATION_ERROR(-20001, 'Échec de la suppression de l''appareil');
+  END IF;
+
+  -- Vérifier que les expériences associées ont été mises à jour
+  IF EXISTS (SELECT 1 FROM experience WHERE id_appareil = v_appareil_id) THEN
+    RAISE_APPLICATION_ERROR(-20002, 'Échec de la mise à jour des expériences associées à l''appareil');
+  END IF;
+END;
 /
     
     

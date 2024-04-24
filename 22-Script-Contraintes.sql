@@ -19,27 +19,48 @@ DROP TRIGGER T_slot_par_groupe;
 DROP TRIGGER T_prix_experience;
 DROP TRIGGER T_panne_app;
 DROP TRIGGER T_lancement_experience;
+DROP TRIGGER T_resultat_experience;
 DROP TRIGGER after_experience_update;
 DROP TRIGGER refus_plaque_trigger;
 DROP TRIGGER T_arrivee_lot;
+DROP TRIGGER T_stock_plaque;
 DROP TRIGGER T_FACTURE;
 DROP TRIGGER T_APPAREIL;
 DROP TRIGGER T_LISTE_ATTENTE;
 DROP TRIGGER CALCUL_FREQUENCE_OBSERVATION;
 DROP TRIGGER UPDATE_SOLDE_EQUIPE;
 DROP TRIGGER Contrainte_statut_experience;
+DROP TRIGGER T_suppression_plaque;
+DROP TRIGGER T_suppression_appareil;
 
+CREATE OR REPLACE TRIGGER T_check_type_plaque
+BEFORE INSERT OR UPDATE ON PLAQUE
+FOR EACH ROW
+DECLARE
+    invalid_type_plaque EXCEPTION;
+BEGIN
+    IF :NEW.TYPE_PLAQUE NOT IN (96, 384) THEN
+        RAISE invalid_type_plaque;
+    END IF;
+EXCEPTION
+    WHEN invalid_type_plaque THEN
+        RAISE_APPLICATION_ERROR(-20000, 'Le type de plaque doit être 96 ou 384');
+END;
+/
 
--- Trigger Valeur de biais A1 doit être inférieur ou égal à A2
 CREATE OR REPLACE TRIGGER T_check_valeur_biais2
 BEFORE INSERT OR UPDATE ON EXPERIENCE
-FOR EACH ROW   
+FOR EACH ROW
 DECLARE
+    invalid_biais_value EXCEPTION;
 BEGIN
-    IF :NEW.VALEUR_BIAIS_A2 < :NEW.VALEUR_BIAIS_A1 THEN 
-        RAISE_APPLICATION_ERROR(-20001, 'La valeur de biais a2 ne peut pas être inférieure à a1');
+    IF :NEW.VALEUR_BIAIS_A2 < :NEW.VALEUR_BIAIS_A1 THEN
+        RAISE invalid_biais_value;
     END IF;
-END; 
+EXCEPTION
+    WHEN invalid_biais_value THEN
+        RAISE_APPLICATION_ERROR(-20001, 'La valeur de biais A2 doit être supérieure ou égale à la valeur de biais A1');
+END;
 /
 
 -- Trigger nombre de slots par plaque : Erreur si le nombre de slots par plaque n'est pas équivalent 
@@ -47,26 +68,18 @@ CREATE OR REPLACE TRIGGER T_check_nb_slots_groupe
 BEFORE INSERT OR UPDATE ON GROUPESLOT
 FOR EACH ROW
 DECLARE
-    v_nb_slot INTEGER;
-    v_nb_slot_other INTEGER;
+    invalid_nb_slots EXCEPTION;
+    v_type_plaque PLAQUE.TYPE_PLAQUE%TYPE;
 BEGIN
-    -- Obtenir le nombre de slots pour ce groupe
-    SELECT COUNT(*)
-    INTO v_nb_slot
-    FROM SLOT
-    WHERE ID_GROUPE = :NEW.ID_GROUPE;
-
-    -- Obtenir le nombre de slots dans les autres groupes de la même expérience
-    SELECT COUNT(*)
-    INTO v_nb_slot_other
-    FROM GROUPESLOT
-    WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE
-      AND :NEW.ID_GROUPE <> ID_GROUPE;
-
-    -- Vérifier si ce nombre de slots est différent du nombre de slots dans les autres groupes de cette expérience
-    IF v_nb_slot != v_nb_slot_other THEN
-        RAISE_APPLICATION_ERROR(-20000, 'Chaque groupe de slots pour une même expérience doit avoir le même nombre de slots.');
+    SELECT TYPE_PLAQUE INTO v_type_plaque FROM PLAQUE WHERE ID_PLAQUE = :NEW.ID_PLAQUE;
+    IF v_type_plaque = 96 AND :NEW.NB_SLOTS_PAR_GROUPE_EXPERIENCE NOT IN (1, 2, 3, 4, 6, 8, 12) THEN
+        RAISE invalid_nb_slots;
+    ELSIF v_type_plaque = 384 AND :NEW.NB_SLOTS_PAR_GROUPE_EXPERIENCE NOT IN (1, 2, 3, 4, 6, 8, 12, 16, 24) THEN
+        RAISE invalid_nb_slots;
     END IF;
+EXCEPTION
+    WHEN invalid_nb_slots THEN
+        RAISE_APPLICATION_ERROR(-20002, 'Le nombre de slots par groupe doit être cohérent avec le type de plaque');
 END;
 /
 
@@ -312,13 +325,18 @@ CREATE OR REPLACE TRIGGER T_prix_experience
 BEFORE INSERT OR UPDATE ON EXPERIENCE
 FOR EACH ROW
 DECLARE
-    prix INTEGER;
+    v_nb_exp_en_attente NUMBER;
+    v_nb_exp_doublees NUMBER;
+    v_coeff_prix_prio NUMBER;
 BEGIN
-    -- Calcul du prix de l'expérience selon la formule donnée
-    prix := :NEW.PRIORITE_EXPERIENCE * (:NEW.NB_RENOUVELLEMENT_EXPERIENCE + :NEW.FREQUENCE_EXPERIENCE) / :NEW.NB_RENOUVELLEMENT_EXPERIENCE;
-    
-    -- Affichage du prix calculé (facultatif)
-    DBMS_OUTPUT.PUT_LINE('Le prix calculé de l''expérience est : ' || prix);
+    SELECT COUNT(*) INTO v_nb_exp_en_attente FROM EXPERIENCE WHERE ETAT_EXPERIENCE = 'en attente';
+    SELECT COUNT(*) INTO v_nb_exp_doublees FROM EXPERIENCE WHERE ETAT_EXPERIENCE = 'en attente' AND PRIORITE_EXPERIENCE > :NEW.PRIORITE_EXPERIENCE;
+    IF :NEW.PRIORITE_EXPERIENCE > 1 THEN
+        v_coeff_prix_prio := (v_nb_exp_en_attente + v_nb_exp_doublees) / v_nb_exp_en_attente;
+    ELSE
+        v_coeff_prix_prio := 1;
+    END IF;
+    :NEW.COEFF_PRIX_PRIO_EXPERIENCE := v_coeff_prix_prio;
 END;
 /
 
@@ -327,11 +345,13 @@ END;
 CREATE OR REPLACE TRIGGER T_panne_app
 AFTER UPDATE OF ETAT_APPAREIL ON APPAREIL
 FOR EACH ROW
+DECLARE
+    v_id_experience EXPERIENCE.ID_EXPERIENCE%TYPE;
 BEGIN
-    IF :OLD.ETAT_APPAREIL <> 'En panne' AND :NEW.ETAT_APPAREIL = 'En panne' THEN
-        UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'A programmer'
-        WHERE ID_APPAREIL = :NEW.ID_APPAREIL
-        AND ETAT_EXPERIENCE <> 'A programmer';
+    IF :OLD.ETAT_APPAREIL = 'disponible' AND :NEW.ETAT_APPAREIL = 'en panne' THEN
+        FOR r IN (SELECT ID_EXPERIENCE FROM EXPERIENCE WHERE ID_APPAREIL = :OLD.ID_APPAREIL AND ETAT_EXPERIENCE = 'à programmer') LOOP
+            UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'en attente' WHERE ID_EXPERIENCE = r.ID_EXPERIENCE;
+        END LOOP;
     END IF;
 END;
 /
@@ -343,123 +363,97 @@ Appareil fait update sur le slot qui va faire un update sur le groupe de slots q
 donc on doit pas faire les procédures de peuplement des groupes de slots et des slots
 */
 CREATE OR REPLACE TRIGGER T_lancement_experience
-AFTER UPDATE OF ETAT_EXPERIENCE ON EXPERIENCE
+AFTER INSERT ON EXPERIENCE
 FOR EACH ROW
 DECLARE
-    TYPE_PLAQUE_EXP PLAQUE.TYPE_PLAQUE%TYPE;
-    NB_GROUPE_EXP NUMBER;
-    ID_PLAQUE_EXP PLAQUE.ID_PLAQUE%TYPE;
-    NB_SLOTS_PAR_GROUPE NUMBER;
+  v_id_plaque PLAQUE.ID_PLAQUE%TYPE;
+  v_type_plaque PLAQUE.TYPE_PLAQUE%TYPE;
 BEGIN
-    -- Stocker les valeurs de NEW.TYPE_PLAQUE et NEW.NB_GROUPE_SLOT_EXPERIENCE dans des variables
-    TYPE_PLAQUE_EXP := :NEW.TYPE_PLAQUE;
-    NB_GROUPE_EXP := :NEW.NB_GROUPE_SLOT_EXPERIENCE;
-    
-    FOR i IN 1..NB_GROUPE_EXP LOOP
-        IF i = 1 THEN
-            -- Sélectionner l'ID_PLAQUE correspondant au TYPE_PLAQUE de l'expérience mise à jour
-            SELECT ID_PLAQUE INTO ID_PLAQUE_EXP
-            FROM PLAQUE
-            WHERE TYPE_PLAQUE = TYPE_PLAQUE_EXP AND ROWNUM = 1;
-            
-            -- Mettre à jour les stocks en enlevant 1 au stock de la plaque pour le TYPE_PLAQUE correspondant
-            IF TYPE_PLAQUE_EXP = 384 THEN
-                UPDATE STOCK
-                SET Quantite_P384 = Quantite_P384 - 1
-                WHERE ID_STOCK = (SELECT ID_STOCK FROM PLAQUELOT WHERE ID_PLAQUE = ID_PLAQUE_EXP);
-            ELSIF TYPE_PLAQUE_EXP = 96 THEN
-                UPDATE STOCK
-                SET Quantite_P96 = Quantite_P96 - 1
-                WHERE ID_STOCK = (SELECT ID_STOCK FROM PLAQUELOT WHERE ID_PLAQUE = ID_PLAQUE_EXP);
-            END IF;
-        END IF;
-        -- Insérer le groupe de slot pour l'expérience
-        INSERT INTO GROUPESLOT(ID_EXPERIENCE, ID_PLAQUE) VALUES (:NEW.ID_EXPERIENCE, ID_PLAQUE_EXP);
-        -- Sélectionner le nombre de slots par groupe pour l'expérience
-        SELECT NB_SLOTS_PAR_GROUPE_EXPERIENCE INTO NB_SLOTS_PAR_GROUPE FROM EXPERIENCE WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
-        -- Insérer des slots pour chaque groupe
-        FOR j IN 1..NB_SLOTS_PAR_GROUPE LOOP
-            INSERT INTO SLOT(ID_GROUPE) VALUES ((SELECT ID_GROUPE FROM GROUPESLOT WHERE ROWNUM = 1)); -- Vous devrez ajuster cette partie pour sélectionner l'ID_GROUPE correctement
-            -- Enregistrer chaque slot avec un identifiant et une position dans la plaque
-        END LOOP;
+  -- Sélectionner une plaque disponible en fonction du type de plaque requis par l'expérience
+  SELECT p.ID_PLAQUE, p.TYPE_PLAQUE
+  INTO v_id_plaque, v_type_plaque
+  FROM PLAQUE p
+  JOIN LOT l ON p.ID_LOT = l.ID_LOT
+  WHERE p.ETAT_PLAQUE = 'Disponible'
+  AND l.TYPE_PLAQUE_LOT = :NEW.TYPE_PLAQUE
+  ORDER BY l.DATE_LIVRAISON_LOT ASC
+  FETCH FIRST 1 ROWS ONLY;
+
+  -- Mettre à jour l'état de la plaque sélectionnée
+  UPDATE PLAQUE SET ETAT_PLAQUE = 'Utilisée' WHERE ID_PLAQUE = v_id_plaque;
+
+  -- Insérer un groupe de slots pour chaque groupe de slots nécessaire pour l'expérience
+  FOR i IN 1..:NEW.NB_GROUPE_SLOT_EXPERIENCE LOOP
+    INSERT INTO GROUPESLOT (ID_EXPERIENCE, ID_PLAQUE, MOYENNE_GROUPE, ECART_TYPE_GROUPE, VALIDITE_GROUPE)
+    VALUES (:NEW.ID_EXPERIENCE, v_id_plaque, NULL, NULL, 'Non validé');
+
+    -- Insérer des slots pour chaque slot nécessaire dans le groupe de slots
+    FOR j IN 1..:NEW.NB_SLOTS_PAR_GROUPE_EXPERIENCE LOOP
+      INSERT INTO SLOT (ID_GROUPE, COULEUR_SLOT, NUMERO_SLOT, POSITION_X_SLOT, POSITION_Y_SLOT, RM_SLOT, RD_SLOT, VM_SLOT, VD_SLOT, BM_SLOT, BD_SLOT, TM_SLOT, TD_SLOT, VALIDITE_SLOT)
+      VALUES (seq_id_groupeslot.CURRVAL, NULL, j, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Non validé');
     END LOOP;
+  END LOOP;
+END;
+
+/
+
+-- Trigger selon le résultat d'une expérience
+CREATE OR REPLACE TRIGGER T_resultat_experience
+AFTER INSERT OR UPDATE ON RESULTAT
+FOR EACH ROW
+DECLARE
+    v_id_experience RESULTAT.ID_EXPERIENCE%TYPE;
+    v_nb_resultats_refuses NUMBER;
+    v_nb_resultats_totaux NUMBER;
+BEGIN
+    SELECT ID_EXPERIENCE INTO v_id_experience FROM RESULTAT WHERE ID_RESULTAT = :NEW.ID_RESULTAT;
+    SELECT COUNT(*) INTO v_nb_resultats_refuses FROM RESULTAT WHERE ID_EXPERIENCE = v_id_experience AND RESULTAT_VALIDE = 'N';
+    SELECT COUNT(*) INTO v_nb_resultats_totaux FROM RESULTAT WHERE ID_EXPERIENCE = v_id_experience;
+    IF v_nb_resultats_refuses = 0 THEN
+        UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'validée' WHERE ID_EXPERIENCE = v_id_experience;
+    ELSIF v_nb_resultats_refuses / v_nb_resultats_totaux > 0.3 THEN
+        UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'refusée' WHERE ID_EXPERIENCE = v_id_experience;
+    ELSE
+        UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'à vérifier' WHERE ID_EXPERIENCE = v_id_experience;
+    END IF;
 END;
 /
 
 -- Trigger de validation de l'expérience en passant tout d'abord par la validation des slots et des groupes de slots
 CREATE OR REPLACE TRIGGER after_experience_update
-AFTER UPDATE OF ETAT_EXPERIENCE ON EXPERIENCE
+AFTER UPDATE OF VALIDITE_GROUPE ON GROUPESLOT
 FOR EACH ROW
-WHEN (NEW.ETAT_EXPERIENCE = 'effectuée')
 DECLARE
-    TYPE TYPE_EXPERIENCE_TABLE IS TABLE OF EXPERIENCE.TYPE_EXPERIENCE%TYPE INDEX BY BINARY_INTEGER;
-    TYPE_EXPERIENCES TYPE_EXPERIENCE_TABLE;
-    TYPE NB_SLOTS_TABLE IS TABLE OF INTEGER INDEX BY BINARY_INTEGER;
-    NB_SLOTS_PAR_GROUPE NB_SLOTS_TABLE;
-    TYPE VALIDATED_GROUP_TABLE IS TABLE OF BOOLEAN INDEX BY BINARY_INTEGER;
-    GROUP_VALIDATION VALIDATED_GROUP_TABLE;
-    NB_REJECTED_RESULTS INTEGER := 0;
-    NB_TOTAL_RESULTS INTEGER := 0;
-    A1 CONSTANT FLOAT := 0.2; -- Valeur de a1 spécifiée dans le protocole
-    A2 CONSTANT FLOAT := 0.5; -- Valeur de a2 spécifiée dans le protocole
-    A3 CONSTANT FLOAT := 0.1; -- Valeur de a3 spécifiée dans le protocole
+  v_nb_groupes_valides NUMBER;
+  v_nb_groupes_necessaires NUMBER;
+  v_nb_slots_valides NUMBER;
+  v_nb_slots_necessaires NUMBER;
 BEGIN
-    -- Récupérer les types d'expérience associés à chaque groupe de slots
-    FOR i IN 1..:NEW.NB_GROUPE_SLOT_EXPERIENCE LOOP
-        SELECT TYPE_EXPERIENCE INTO TYPE_EXPERIENCES(i)
-        FROM GROUPESLOT
-        WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE AND ROWNUM = i;
-        
-        -- Calculer le nombre de slots par groupe pour chaque type d'expérience
-        IF TYPE_EXPERIENCES(i) = 'colorimétrique' THEN
-            NB_SLOTS_PAR_GROUPE(i) := :NEW.NB_SLOTS_PAR_GROUPE_EXPERIENCE;
-        ELSIF TYPE_EXPERIENCES(i) = 'opacimétrique' THEN
-            NB_SLOTS_PAR_GROUPE(i) := :NEW.NB_SLOTS_PAR_GROUPE_EXPERIENCE;
-        END IF;
-        
-        -- Initialiser la table de validation des groupes à TRUE
-        GROUP_VALIDATION(i) := TRUE;
-        
-        -- Pour chaque slot du groupe
-        FOR j IN 1..NB_SLOTS_PAR_GROUPE(i) LOOP
-            -- Calculs de moyenne et d'écart-type pour chaque slot en fonction du type d'expérience
-            IF TYPE_EXPERIENCES(i) = 'colorimétrique' THEN
-                IF (:NEW.COULEUR_SLOT = 'violet' AND :NEW.BM_SLOT > 0) OR
-                   (:NEW.COULEUR_SLOT = 'jaune' AND :NEW.BM_SLOT = 0) THEN
-                    NB_TOTAL_RESULTS := NB_TOTAL_RESULTS + 1;
-                    IF :NEW.ECART_TYPE_GROUPE > A2 THEN
-                        NB_REJECTED_RESULTS := NB_REJECTED_RESULTS + 1;
-                    END IF;
-                END IF;
-            ELSIF TYPE_EXPERIENCES(i) = 'opacimétrique' THEN
-                IF :NEW.RM_SLOT > 0 THEN
-                    NB_TOTAL_RESULTS := NB_TOTAL_RESULTS + 1;
-                    IF :NEW.ECART_TYPE_GROUPE > A2 THEN
-                        NB_REJECTED_RESULTS := NB_REJECTED_RESULTS + 1;
-                    END IF;
-                END IF;
-            END IF;
-        END LOOP;
-    END LOOP;
-    
-    -- Mettre en œuvre les règles de validation des résultats pour l'ensemble de l'expérience selon le protocole spécifié
-    IF NB_REJECTED_RESULTS <= A3 * NB_TOTAL_RESULTS THEN
-        FOR k IN 1..:NEW.NB_GROUPE_SLOT_EXPERIENCE LOOP
-            IF GROUP_VALIDATION(k) = FALSE THEN
-                NB_REJECTED_RESULTS := NB_REJECTED_RESULTS + 1;
-            END IF;
-        END LOOP;
-        IF NB_REJECTED_RESULTS <= A3 * :NEW.NB_GROUPE_SLOT_EXPERIENCE THEN
-            -- Mettre à jour l'état de l'expérience en conséquence (expérience acceptée)
-            UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'validée' WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
-        ELSE
-            -- Mettre à jour l'état de l'expérience en conséquence (expérience refusée)
-            UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'refusée' WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
-        END IF;
-    ELSE
-        -- Mettre à jour l'état de l'expérience en conséquence (expérience refusée)
-        UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'refusée' WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
-    END IF;
+  -- Vérifier que tous les groupes de slots nécessaires ont été validés
+  SELECT COUNT(*), COUNT(CASE WHEN g.VALIDITE_GROUPE = 'Validé' THEN 1 END)
+  INTO v_nb_groupes_necessaires, v_nb_groupes_valides
+  FROM GROUPESLOT g
+  JOIN EXPERIENCE e ON g.ID_EXPERIENCE = e.ID_EXPERIENCE
+  WHERE e.ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
+
+  IF v_nb_groupes_valides < v_nb_groupes_necessaires THEN
+    RAISE_APPLICATION_ERROR(-20001, 'Tous les groupes de slots nécessaires n''ont pas été validés.');
+  END IF;
+
+  -- Vérifier que tous les slots nécessaires ont été validés
+  SELECT COUNT(*), COUNT(CASE WHEN s.VALIDITE_SLOT = 'Validé' THEN 1 END)
+  INTO v_nb_slots_necessaires, v_nb_slots_valides
+  FROM SLOT s
+  JOIN GROUPESLOT g ON s.ID_GROUPE = g.ID_GROUPE
+  JOIN EXPERIENCE e ON g.ID_EXPERIENCE = e.ID_EXPERIENCE
+  WHERE e.ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
+
+  IF v_nb_slots_valides < v_nb_slots_necessaires THEN
+    RAISE_APPLICATION_ERROR(-20002, 'Tous les slots nécessaires n''ont pas été validés.');
+  END IF;
+
+  -- Si tous les groupes de slots et slots nécessaires ont été validés, mettre à jour l'état de l'expérience en conséquence
+  UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'Validée' WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
 END;
 /
 
@@ -504,24 +498,54 @@ CREATE OR REPLACE TRIGGER T_arrivee_lot
 AFTER INSERT ON LOT
 FOR EACH ROW
 DECLARE
-    v_quantite_p96 INTEGER;
-    v_quantite_p384 INTEGER;
-    
+    v_quantite_stock PLS_INTEGER;
 BEGIN
-    -- Récupérer la quantité de plaques à ajouter au stock
     IF :NEW.TYPE_PLAQUE_LOT = 96 THEN
-        UPDATE STOCK
-        SET QUANTITE_P96 = QUANTITE_P96 + 80
-        WHERE ID_STOCK = :NEW.ID_STOCK;
+        SELECT S.QUANTITE_P96 INTO v_quantite_stock
+        FROM STOCK S
+        WHERE S.ID_STOCK = :NEW.ID_STOCK;
+
+        IF v_quantite_stock IS NULL OR v_quantite_stock = 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Le stock sélectionné ne contient pas de plaques 96 slots.');
+        ELSE
+            UPDATE STOCK
+            SET QUANTITE_P96 = QUANTITE_P96 + :NEW.NB_PLAQUES
+            WHERE ID_STOCK = :NEW.ID_STOCK;
+        END IF;
     ELSIF :NEW.TYPE_PLAQUE_LOT = 384 THEN
-        UPDATE STOCK
-        SET QUANTITE_P384 = QUANTITE_P384 + 80
-        WHERE ID_STOCK = :NEW.ID_STOCK;
+        SELECT S.QUANTITE_P384 INTO v_quantite_stock
+        FROM STOCK S
+        WHERE S.ID_STOCK = :NEW.ID_STOCK;
+
+        IF v_quantite_stock IS NULL OR v_quantite_stock = 0 THEN
+            RAISE_APPLICATION_ERROR(-20002, 'Le stock sélectionné ne contient pas de plaques 384 slots.');
+        ELSE
+            UPDATE STOCK
+            SET QUANTITE_P384 = QUANTITE_P384 + :NEW.NB_PLAQUES
+            WHERE ID_STOCK = :NEW.ID_STOCK;
+        END IF;
+    ELSE
+        RAISE_APPLICATION_ERROR(-20003, 'Le type de plaque du lot ajouté est invalide.');
     END IF;
-EXCEPTION
-    WHEN OTHERS THEN
-        -- En cas d'erreur, afficher un message d'erreur
-        DBMS_OUTPUT.PUT_LINE('Erreur lors de l''ajout des plaques au stock : ' || SQLERRM);
+END;
+/
+
+CREATE OR REPLACE TRIGGER T_stock_plaque
+AFTER INSERT OR DELETE ON LOT
+FOR EACH ROW
+DECLARE
+    v_operation VARCHAR2(10);
+    v_nb_plaques NUMBER;
+BEGIN
+    IF INSERTING THEN
+        v_operation := '+';
+        v_nb_plaques := :NEW.NB_PLAQUES;
+    ELSIF DELETING THEN
+        v_operation := '-';
+        v_nb_plaques := :OLD.NB_PLAQUES;
+    END IF;
+    UPDATE STOCK SET QUANTITE_P96 = QUANTITE_P96 || v_operation || v_nb_plaques WHERE TYPE_PLAQUE = 96;
+    UPDATE STOCK SET QUANTITE_P384 = QUANTITE_P384 || v_operation || v_nb_plaques WHERE TYPE_PLAQUE = 384;
 END;
 /
 --------------------------------------------------------------------------------
@@ -652,4 +676,22 @@ BEGIN
 END;
 /
 
+-- Suppression des groupes de slots et des slots associés à une plaque lorsque celle-ci est supprimée
+CREATE OR REPLACE TRIGGER T_suppression_plaque
+BEFORE DELETE ON PLAQUE
+FOR EACH ROW
+BEGIN
+    DELETE FROM GROUPESLOT WHERE ID_PLAQUE = :OLD.ID_PLAQUE;
+    DELETE FROM SLOT WHERE ID_PLAQUE = :OLD.ID_PLAQUE;
+END;
+
+-- Mise à jour ou suppression des expériences associées à un appareil lorsque celui-ci est supprimé
+CREATE OR REPLACE TRIGGER T_suppression_appareil
+BEFORE DELETE ON APPAREIL
+FOR EACH ROW
+BEGIN
+    UPDATE EXPERIENCE SET ID_APPAREIL = NULL WHERE ID_APPAREIL = :OLD.ID_APPAREIL;
+    -- Si vous souhaitez supprimer les expériences associées à l'appareil au lieu de les mettre à jour, utilisez la ligne suivante :
+    -- DELETE FROM EXPERIENCE WHERE ID_APPAREIL = :OLD.ID_APPAREIL;
+END;
 

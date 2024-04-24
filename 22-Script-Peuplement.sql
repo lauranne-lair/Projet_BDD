@@ -3,33 +3,29 @@
 /* Peuplement des tables                                        */
 /*==============================================================*/
 -- FOURNISEUR ------------------------------------------------------------------
-CREATE OR REPLACE PROCEDURE peupler_table_fournisseur AS
+CREATE OR REPLACE PROCEDURE peuplement_fournisseur AS
 BEGIN
-    DELETE FROM FOURNISSEUR;
-    INSERT INTO FOURNISSEUR (ID_FOURNISSEUR, NOM_FOURNISSEUR) VALUES (1, 'Fournisseur 1');
-    INSERT INTO FOURNISSEUR (ID_FOURNISSEUR, NOM_FOURNISSEUR) VALUES (2, 'Fournisseur 2');
-    COMMIT; -- Valider les modifications
-EXCEPTION
-    WHEN OTHERS THEN
-        ROLLBACK; 
-        RAISE;
-END peupler_table_fournisseur;
+  INSERT INTO FOURNISSEUR (ID_FOURNISSEUR, NOM_FOURNISSEUR, ADRESSE_FOURNISSEUR, TELEPHONE_FOURNISSEUR, EMAIL_FOURNISSEUR)
+  VALUES (1, 'Labo Inc.', '123 rue des Sciences', '555-1234', 'contact@labo-inc.com');
+
+  INSERT INTO FOURNISSEUR (ID_FOURNISSEUR, NOM_FOURNISSEUR, ADRESSE_FOURNISSEUR, TELEPHONE_FOURNISSEUR, EMAIL_FOURNISSEUR)
+  VALUES (2, 'BioTech SARL', '456 avenue de la Recherche', '555-5678', 'contact@biotech-sarl.com');
+
+  COMMIT;
+END peuplement_fournisseur;
 /
 
 --STOCK ------------------------------------------------------------------------
 -- Cette procédure de peuplement crée 5 stocks différents vides 
-TRUNCATE TABLE Stock;
 CREATE OR REPLACE PROCEDURE P_stock deterministic AS
 BEGIN
-    INSERT INTO stock (id_stock, quantite_p384, quantite_p96, vol_dernier_tri_p384, vol_dernier_tri_p96)VALUES (1,0,0,0,0);
-    COMMIT;
-EXCEPTION
-    WHEN OTHERS THEN
-        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
-        ROLLBACK;
+    INSERT INTO stock (id_stock, quantite_p384, quantite_p96, vol_dernier_tri_p384, vol_dernier_tri_p96) VALUES (1, 0, 0, 0, 0);
+    INSERT INTO stock (id_stock, quantite_p384, quantite_p96, vol_dernier_tri_p384, vol_dernier_tri_p96) VALUES (2, 0, 0, 0, 0);
+    INSERT INTO stock (id_stock, quantite_p384, quantite_p96, vol_dernier_tri_p384, vol_dernier_tri_p96) VALUES (3, 0, 0, 0, 0);
+    INSERT INTO stock (id_stock, quantite_p384, quantite_p96, vol_dernier_tri_p384, vol_dernier_tri_p96) VALUES (4, 0, 0, 0, 0);
+    INSERT INTO stock (id_stock, quantite_p384, quantite_p96, vol_dernier_tri_p384, vol_dernier_tri_p96) VALUES (5, 0, 0, 0, 0);
 END;
 /
---------------------------------------------------------------------------------
 
 --LOT --------------------------------------------------------------------------
 -- Cette procédure permet de créer 2 lots dans le stock 1 
@@ -50,8 +46,7 @@ BEGIN
         INSERT INTO lot (id_lot, id_stock, date_livraison_lot, nb_plaque, type_plaque_lot)
         VALUES (i, 1, SYSDATE, 80, v_type_plaque); 
     END LOOP;
-    
-    COMMIT; -- Valider les modifications
+    COMMIT;
 EXCEPTION
     WHEN OTHERS THEN
         -- En cas d'erreur, afficher le message d'erreur
@@ -93,8 +88,6 @@ END INSERER_EQUIPE_ALEATOIRE;
 /
 
 EXEC INSERER_EQUIPE_ALEATOIRE(10);
-
-
 
 --CHERCHEUR
 CREATE OR REPLACE PROCEDURE PEUPLE_CHERCHEUR(nb_lignes IN NUMBER) AS
@@ -195,45 +188,55 @@ EXEC PEUPLEMENT_APPAREIL;
 CREATE OR REPLACE PROCEDURE PEUPLE_EXPERIENCE(nb_lignes IN NUMBER) AS
     id_technicien EXPERIENCE.ID_TECHNICIEN%TYPE;
     id_chercheur EXPERIENCE.ID_CHERCHEUR%TYPE;
+    id_liste EXPERIENCE.ID_LISTE%TYPE;
+    id_plaque EXPERIENCE.ID_PLAQUE%TYPE;
+    type_plaque EXPERIENCE.TYPE_PLAQUE%TYPE;
+    nb_groupe_slot_experience EXPERIENCE.NB_GROUPE_SLOT_EXPERIENCE%TYPE;
+    nb_slots_par_groupe_experience EXPERIENCE.NB_SLOTS_PAR_GROUPE_EXPERIENCE%TYPE;
 BEGIN
     FOR i IN 1..nb_lignes LOOP
         -- Sélectionner un ID_TECHNICIEN aléatoire
         SELECT ID_TECHNICIEN INTO id_technicien FROM TECHNICIEN ORDER BY DBMS_RANDOM.VALUE FETCH FIRST 1 ROWS ONLY;
+
         -- Sélectionner un ID_CHERCHEUR aléatoire
         SELECT ID_CHERCHEUR INTO id_chercheur FROM CHERCHEUR ORDER BY DBMS_RANDOM.VALUE FETCH FIRST 1 ROWS ONLY;
-        
+
+        -- Sélectionner un ID_LISTE aléatoire
+        SELECT ID_LISTE INTO id_liste FROM LISTEATTENTE ORDER BY DBMS_RANDOM.VALUE FETCH FIRST 1 ROWS ONLY;
+
+        -- Sélectionner un ID_PLAQUE aléatoire
+        SELECT ID_PLAQUE INTO id_plaque FROM PLAQUE ORDER BY DBMS_RANDOM.VALUE FETCH FIRST 1 ROWS ONLY;
+
+        -- Sélectionner un TYPE_PLAQUE aléatoire
+        SELECT TYPE_PLAQUE INTO type_plaque FROM PLAQUE ORDER BY DBMS_RANDOM.VALUE FETCH FIRST 1 ROWS ONLY;
+
+        -- Générer un nombre aléatoire de groupes de slots pour l'expérience
+        nb_groupe_slot_experience := DBMS_RANDOM.VALUE(1, 10);
+
+        -- Générer un nombre aléatoire de slots par groupe pour l'expérience
+        nb_slots_par_groupe_experience := DBMS_RANDOM.VALUE(1, 10);
+
         -- Insérer des données aléatoires dans la table EXPERIENCE
-        INSERT INTO EXPERIENCE(ID_EXPERIENCE, ID_TECHNICIEN, ID_CHERCHEUR, TYPE_EXPERIENCE, ETAT_EXPERIENCE,
-                               DEB_EXPERIENCE, FIN_EXPERIENCE, DUREE_EXPERIENCE, DATE_DEMANDE_EXPERIENCE,
+        INSERT INTO EXPERIENCE(ID_EXPERIENCE, ID_LISTE, ID_TECHNICIEN, ID_CHERCHEUR, TYPE_PLAQUE, ID_PLAQUE, NB_GROUPE_SLOT_EXPERIENCE, NB_SLOTS_PAR_GROUPE_EXPERIENCE, DUREE_EXPERIENCE, DATE_DEMANDE_EXPERIENCE,
                                DATE_TRANSMISSION_RESULTAT, PRIORITE_EXPERIENCE, FREQUENCE_EXPERIENCE,
                                REPROGR_MAX_EXPERIENCE, COEFF_PRIX_PRIO_EXPERIENCE, VALEUR_BIAIS_A1,
                                VALEUR_BIAIS_A2, VALEUR_BIAIS_A3, MOYENNE_EXPERIENCE, ECART_TYPE_EXPERIENCE,
                                NB_RENOUVELLEMENT_EXPERIENCE)
-        VALUES(seq_id_experience.NEXTVAL, id_technicien, id_chercheur, 'TypeExperience', 'EtatExperience',
-               TO_DATE('2024-01-01', 'YYYY-MM-DD'), TO_DATE('2024-01-10', 'YYYY-MM-DD'), 10,
-               TO_DATE('2024-01-01', 'YYYY-MM-DD'), TO_DATE('2024-01-10', 'YYYY-MM-DD'), 1, 
+        VALUES(seq_id_experience.NEXTVAL, id_liste, id_technicien, id_chercheur, type_plaque, id_plaque, nb_groupe_slot_experience, nb_slots_par_groupe_experience, 10,
+               TO_DATE('2024-01-01', 'YYYY-MM-DD'), TO_DATE('2024-01-10', 'YYYY-MM-DD'), 1,
                DBMS_RANDOM.VALUE(1, 10), 1, 1, 0.5, 0.7, 0.2, 50, 5, 3);
     END LOOP;
     COMMIT;
 END PEUPLE_EXPERIENCE;
 /
 
-EXECTURE PEUPLE_EXPERIENCE(30);
+EXECUTE PEUPLE_EXPERIENCE(10);
+
 --LISTE ATTENTE
 INSERT INTO LISTEATTENTE (ID_LISTE, NB_EXP_ATTENTE, EXPERIENCE, NB_EXP_DOUBLE) VALUES (1, 10, 1, 5);
 
 --PLAQUE
 INSERT INTO PLAQUE (ID_PLAQUE, ID_LOT, TYPE_PLAQUE, NB_EXPERIENCE_PLAQUE, ETAT_PLAQUE) VALUES (1, 1, 384, 50, 'EtatPlaque');
-
---GROUPESLOT
-INSERT INTO GROUPESLOT (ID_GROUPE, ID_EXPERIENCE, ID_PLAQUE, MOYENNE_GROUPE, ECART_TYPE_GROUPE, VALIDITE_GROUPE) VALUES (1, 1, 1, 50, 5, 0);
-INSERT INTO GROUPESLOT (ID_GROUPE, ID_EXPERIENCE, ID_PLAQUE, MOYENNE_GROUPE, ECART_TYPE_GROUPE, VALIDITE_GROUPE) VALUES (2, 1, 1, 50, 5, 0);
-
---SLOT
-INSERT INTO SLOT (ID_SLOT, ID_GROUPE, COULEUR_SLOT, NUMERO_SLOT, POSITION_X_SLOT, POSITION_Y_SLOT, RM_SLOT, RD_SLOT, VM_SLOT, VD_SLOT, BM_SLOT, BD_SLOT, TM_SLOT, TD_SLOT) VALUES (1, 1, 'Couleur', 1, 10, 10, 1, 2, 3, 4, 5, 6, 7, 8);
-INSERT INTO SLOT (ID_SLOT, ID_GROUPE, COULEUR_SLOT, NUMERO_SLOT, POSITION_X_SLOT, POSITION_Y_SLOT, RM_SLOT, RD_SLOT, VM_SLOT, VD_SLOT, BM_SLOT, BD_SLOT, TM_SLOT, TD_SLOT) VALUES (2, 1, 'Couleur', 2, 20, 20, 1, 2, 3, 4, 5, 6, 7, 8);
--- trigger d'automatisation pour ces deux la 
-
 
 
 
