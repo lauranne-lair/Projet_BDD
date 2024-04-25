@@ -624,7 +624,7 @@ END;
 /
 
 /*==============================================================*/
-/* Trigger expérience echouée ajt liste renouveler + coefficient de surcoût    à faire               */
+/* Trigger expérience echouée ajt liste renouveler ok + coefficient de surcoût    à faire               */
 /*==============================================================*/
 /*CREATE OR REPLACE TRIGGER Contrainte_statut_experience
 AFTER INSERT OR UPDATE ON EXPERIENCE
@@ -743,42 +743,8 @@ END;
 /
 
 
-
 /*==============================================================*/
---Vérifie si le produit du nombre de renouvellements d'expérience par la valeur du biais A3  est inférieur à la valeur du biais A3. 
---En fonction du résultat, il met à jour l'état de l'expérience  en 'Acceptée' ou 'Refusée'.
-/*==============================================================*/
-CREATE OR REPLACE TRIGGER Contrainte_nb_releves_photo
-BEFORE INSERT OR UPDATE OF NB_RENOUVELLEMENT_EXPERIENCE ON Experience
-FOR EACH ROW
-DECLARE
-  v_etat_experience VARCHAR2(20);
-  v_f NUMBER;
-BEGIN
-  -- Récupérer la valeur de f à partir de la table Parametres
-  SELECT p.valeur INTO v_f
-  FROM Parametres p
-  WHERE p.nom = 'FREQUENCE_OBSERVATION';
-
-  -- Calculer le nombre de résultats photométriques refusés (a3N)
-  v_etat_experience := :NEW.ETAT_EXPERIENCE;
-
-  -- Vérifier si le nombre de résultats refusés est inférieur à a3N
-  IF :NEW.VALEUR_BIAIS_A3 * :NEW.NB_RENOUVELLEMENT_EXPERIENCE < v_f THEN
-    v_etat_experience := 'Acceptée';
-  ELSE
-    v_etat_experience := 'Refusée';
-  END IF;
-
-  -- Mettre à jour l'état de l'expérience avant l'insertion ou la mise à jour
-  :NEW.ETAT_EXPERIENCE := v_etat_experience;
-END;
-/
--- a finir
-
-
-/*==============================================================*/
-/* Trigger modification du solde équipe                   */
+-- Trigger freq observation
 /*==============================================================*/
 CREATE OR REPLACE FUNCTION Calcul_frequence_observation(
     p_id_experience IN NUMBER
@@ -807,6 +773,13 @@ END;
 /
 
 
+
+
+
+/*==============================================================*/
+--Vérifie si le produit du nombre de renouvellements d'expérience par la valeur du biais A3  est inférieur à la valeur du biais A3. 
+--En fonction du résultat, il met à jour l'état de l'expérience  en 'Acceptée' ou 'Refusée'.
+/*==============================================================*/
 CREATE OR REPLACE TRIGGER Contrainte_nb_releves_photo
 BEFORE INSERT OR UPDATE ON Experience
 FOR EACH ROW
@@ -817,6 +790,9 @@ DECLARE
     n NUMBER;
     rejected_count NUMBER;
     accepted_count NUMBER;
+    mean NUMBER;
+    stddev NUMBER;
+    result NUMBER;
 BEGIN
     -- Retrieve the values of d, f, and a3 from the current row
     d := :NEW.DUREE_EXPERIENCE;
@@ -826,21 +802,52 @@ BEGIN
     -- Calculate the total number of photometric results
     n := ROUND(d / f);
 
+    -- Calculate the mean and standard deviation of the photometric results
+    SELECT AVG(result), STDDEV(result)
+    INTO mean, stddev
+    FROM (
+        SELECT result
+        FROM (
+            SELECT :NEW.ID_EXPERIENCE id_experience,
+                   DEB_EXPERIENCE + (ROW_NUMBER() OVER (ORDER BY DEB_EXPERIENCE) - 1) * (:NEW.DUREE_EXPERIENCE / :NEW.FREQUENCE_EXPERIENCE) / (24 * 60) date_resultat,
+                   CASE
+                       WHEN TYPE_EXPERIENCE = 'Cinétique' THEN
+                           MOYENNE_EXPERIENCE + VALEUR_BIAIS_A1 * (:NEW.DUREE_EXPERIENCE - (ROW_NUMBER() OVER (ORDER BY DEB_EXPERIENCE) - 1) * (:NEW.DUREE_EXPERIENCE / :NEW.FREQUENCE_EXPERIENCE)) + VALEUR_BIAIS_A2 * POWER((:NEW.DUREE_EXPERIENCE - (ROW_NUMBER() OVER (ORDER BY DEB_EXPERIENCE) - 1) * (:NEW.DUREE_EXPERIENCE / :NEW.FREQUENCE_EXPERIENCE)), 2)
+                       ELSE
+                           MOYENNE_EXPERIENCE
+                   END result
+            FROM Experience
+            WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE
+            ORDER BY DEB_EXPERIENCE
+        )
+        WHERE ROWNUM <= n
+    );
+
     -- Calculate the number of accepted and rejected photometric results
     SELECT COUNT(CASE
-                WHEN some_other_column IS NOT NULL THEN 1
+                WHEN result BETWEEN mean - stddev AND mean + stddev THEN 1
               END) accepted_count,
            COUNT(CASE
-                WHEN some_other_column IS NULL THEN 1
+                WHEN result NOT BETWEEN mean - stddev AND mean + stddev THEN 1
               END) rejected_count
     INTO accepted_count, rejected_count
     FROM (
-        SELECT some_other_column
-        FROM Experience
-        WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE
-        ORDER BY DEB_EXPERIENCE
-    )
-    WHERE ROWNUM <= n;
+        SELECT result
+        FROM (
+            SELECT :NEW.ID_EXPERIENCE id_experience,
+                   DEB_EXPERIENCE + (ROW_NUMBER() OVER (ORDER BY DEB_EXPERIENCE) - 1) * (:NEW.DUREE_EXPERIENCE / :NEW.FREQUENCE_EXPERIENCE) / (24 * 60) date_resultat,
+                   CASE
+                       WHEN TYPE_EXPERIENCE = 'Cinétique' THEN
+                           MOYENNE_EXPERIENCE + VALEUR_BIAIS_A1 * (:NEW.DUREE_EXPERIENCE - (ROW_NUMBER() OVER (ORDER BY DEB_EXPERIENCE) - 1) * (:NEW.DUREE_EXPERIENCE / :NEW.FREQUENCE_EXPERIENCE)) + VALEUR_BIAIS_A2 * POWER((:NEW.DUREE_EXPERIENCE - (ROW_NUMBER() OVER (ORDER BY DEB_EXPERIENCE) - 1) * (:NEW.DUREE_EXPERIENCE / :NEW.FREQUENCE_EXPERIENCE)), 2)
+                       ELSE
+                           MOYENNE_EXPERIENCE
+                   END result
+            FROM Experience
+            WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE
+            ORDER BY DEB_EXPERIENCE
+        )
+        WHERE ROWNUM <= n
+    );
 
     -- Check if the number of rejected results is less than a3N
     IF rejected_count < a3 * n THEN
@@ -852,6 +859,11 @@ END;
 /
 
 
+
+-- test du trigge au dessus : 
+SELECT STATUS FROM USER_OBJECTS WHERE OBJECT_NAME = 'CALCUL_FREQUENCE_OBSERVATION';
+
+UPDATE Experience SET DUREE_EXPERIENCE = 48 WHERE ID_EXPERIENCE = 1;
 
 
 
