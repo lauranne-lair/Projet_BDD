@@ -54,6 +54,8 @@ EXCEPTION
         ROLLBACK; -- Annuler les modifications en cas d'erreur
 END;
 /
+
+Exec P_Lot(5);
 --------------------------------------------------------------------------------
 
 --ACHETER
@@ -237,35 +239,42 @@ EXECUTE PEUPLE_EXPERIENCE(10);
 
 --PLAQUE
 CREATE OR REPLACE PROCEDURE peupler_table_plaques AS
+    v_id_lot NUMBER;
+    v_type_plaque NUMBER;
+    v_nb_experience_plaque NUMBER;
+    v_etat_plaque VARCHAR2(25);
 BEGIN
-    FOR i IN 1..6 LOOP -- Changer 6 au nombre de lignes que vous souhaitez insérer
-        INSERT INTO votre_table_plaques (ID_PLAQUE, ID_LOT, TYPE_PLAQUE, NB_EXPERIENCE_PLAQUE, ETAT_PLAQUE)
-        VALUES (LLAIR.SEQ_ID_PLAQUE.NEXTVAL, -- Utilisation de la séquence pour générer ID_PLAQUE
-                i, -- Remplacer par la valeur appropriée pour ID_LOT
-                FLOOR(DBMS_RANDOM.VALUE(1, 10)), -- Remplacer 10 par le nombre maximum pour TYPE_PLAQUE
-                FLOOR(DBMS_RANDOM.VALUE(1, 100)), -- Remplacer 100 par le nombre maximum pour NB_EXPERIENCE_PLAQUE
-                CASE MOD(i, 3) -- Générer un état aléatoire
-                    WHEN 0 THEN 'Bon'
-                    WHEN 1 THEN 'Moyen'
-                    ELSE 'Mauvais'
-                END);
+    FOR i IN 1..10 LOOP -- Changer 10 au nombre de lignes que vous souhaitez insérer
+        SELECT ID_LOT INTO v_id_lot FROM LOT WHERE ROWNUM = 1; -- Sélectionner une valeur existante pour ID_LOT
+        v_type_plaque := CASE FLOOR(DBMS_RANDOM.VALUE(1, 2))
+                            WHEN 1 THEN 96
+                            ELSE 384
+                         END;
+        v_nb_experience_plaque := FLOOR(DBMS_RANDOM.VALUE(1, 100)); -- Remplacer 100 par le nombre maximum pour NB_EXPERIENCE_PLAQUE
+        v_etat_plaque := CASE MOD(i, 3) -- Générer un état aléatoire
+                            WHEN 0 THEN 'Bon'
+                            WHEN 1 THEN 'Moyen'
+                            ELSE 'Mauvais'
+                         END;
+        INSERT INTO PLAQUE (ID_PLAQUE, ID_LOT, TYPE_PLAQUE, NB_EXPERIENCE_PLAQUE, ETAT_PLAQUE)
+        VALUES (LLAIR.SEQ_ID_PLAQUE.NEXTVAL, v_id_lot, v_type_plaque, v_nb_experience_plaque, v_etat_plaque);
     END LOOP;
     COMMIT; -- Valider les changements
 EXCEPTION
     WHEN OTHERS THEN
         ROLLBACK; -- En cas d'erreur, annuler les changements
         RAISE; -- Propager l'exception pour la gestion externe
-END;
-/
-
+END peupler_table_plaques;
 
 
 
 TRUNCATE TABLE LOT;
 TRUNCATE TABLE STOCK;
+TRUNCATE TABLE PLAQUE;
 begin
---P_stock();
+P_stock();
 P_Lot();
+peupler_table_plaques;
 end; 
 /
 

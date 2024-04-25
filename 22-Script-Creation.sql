@@ -41,6 +41,7 @@ ALTER TABLE EXPERIENCE
 ALTER TABLE EXPERIENCE
     DROP CONSTRAINT check_biais2;
 
+
 drop index ACHETER2_FK;
 drop index ACHETER_FK;
 drop table ACHETER cascade constraints;
@@ -69,6 +70,7 @@ drop table SLOT cascade constraints;
 drop table STOCK cascade constraints;
 drop index APPARTENIR_FK;
 drop table TECHNICIEN cascade constraints;
+drop table RESULTAT_EXPERIENCE cascade constraints;
 
 DROP SEQUENCE seq_id_acheter;
 DROP SEQUENCE seq_id_appareil;
@@ -82,6 +84,7 @@ DROP SEQUENCE seq_id_plaque;
 DROP SEQUENCE seq_id_slot;
 DROP SEQUENCE seq_id_technicien;
 DROP SEQUENCE seq_id_stock;
+DROP SEQUENCE seq_id_resultat_experience;
 
 
 /*==============================================================*/
@@ -440,9 +443,9 @@ alter table EXPERIENCE
       references TECHNICIEN (ID_TECHNICIEN);
       
 
-ALTER TABLE EXPERIENCE
+/*ALTER TABLE EXPERIENCE
     ADD CONSTRAINT FK_EXPERIENCE_APPAREIL FOREIGN KEY (ID_APPAREIL)
-        REFERENCES APPAREIL (ID_APPAREIL);
+        REFERENCES APPAREIL (ID_APPAREIL);*/
 
 alter table FACTURE
    add constraint FK_FACTURE_PAYER_EQUIPE foreign key (ID_EQUIPE)
@@ -473,9 +476,9 @@ alter table SLOT
    add constraint FK_SLOT_ASSEMBLER_GROUPESL foreign key (ID_GROUPE)
       references GROUPESLOT (ID_GROUPE);
       
-ALTER TABLE SLOT
+/*ALTER TABLE SLOT
     ADD CONSTRAINT FK_SLOT_PLAQUE FOREIGN KEY (ID_PLAQUE)
-        REFERENCES PLAQUE (ID_PLAQUE);
+        REFERENCES PLAQUE (ID_PLAQUE);*/
         
 ALTER TABLE SLOT
     ADD CONSTRAINT FK_SLOT_GROUPESLOT FOREIGN KEY (ID_GROUPE)
