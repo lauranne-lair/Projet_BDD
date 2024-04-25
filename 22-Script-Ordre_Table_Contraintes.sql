@@ -374,7 +374,7 @@ CREATE OR REPLACE TRIGGER T_arrivee_lot
 AFTER INSERT ON LOT
 FOR EACH ROW
 DECLARE
-    v_quantite_stock PLS_INTEGER;
+    v_quantite_stock PLS_INTEGER := 0;
 BEGIN
     IF :NEW.TYPE_PLAQUE_LOT = 96 THEN
         SELECT QUANTITE_P96 INTO v_quantite_stock
@@ -393,6 +393,9 @@ BEGIN
         FROM STOCK
         WHERE ID_STOCK = :NEW.ID_STOCK;
 
+        -- Initialiser v_quantite_stock à zéro avant la requête SELECT
+        v_quantite_stock := 0;
+
         IF v_quantite_stock IS NULL OR v_quantite_stock = 0 THEN
             RAISE_APPLICATION_ERROR(-20002, 'Le stock sélectionné ne contient pas de plaques 384 slots.');
         ELSE
@@ -410,7 +413,7 @@ CREATE OR REPLACE TRIGGER T_stock_plaque
 AFTER INSERT OR DELETE ON LOT
 FOR EACH ROW
 DECLARE
-    v_operation VARCHAR2(10); -- Utilisez VARCHAR2(1) car v_operation stocke un seul caractère (+ ou -)
+    v_operation VARCHAR2(1);
     v_nb_plaques NUMBER;
 BEGIN
     IF INSERTING THEN
@@ -421,9 +424,16 @@ BEGIN
         v_nb_plaques := :OLD.NB_PLAQUES;
     END IF;
 
-    UPDATE STOCK 
-    SET QUANTITE_P96 = CASE WHEN TYPE_PLAQUE = 96 THEN QUANTITE_P96 + v_nb_plaques ELSE QUANTITE_P96 END,
-        QUANTITE_P384 = CASE WHEN TYPE_PLAQUE = 384 THEN QUANTITE_P384 + v_nb_plaques ELSE QUANTITE_P384 END;
+    -- Mettre à jour uniquement la quantité de la plaque correspondante dans la table STOCK
+    IF :NEW.TYPE_PLAQUE_LOT = 96 THEN
+        UPDATE STOCK
+        SET QUANTITE_P96 = QUANTITE_P96 + CASE WHEN v_operation = '+' THEN v_nb_plaques ELSE -v_nb_plaques END
+        WHERE ID_STOCK = :NEW.ID_STOCK;
+    ELSIF :NEW.TYPE_PLAQUE_LOT = 384 THEN
+        UPDATE STOCK
+        SET QUANTITE_P384 = QUANTITE_P384 + CASE WHEN v_operation = '+' THEN v_nb_plaques ELSE -v_nb_plaques END
+        WHERE ID_STOCK = :NEW.ID_STOCK;
+    END IF;
 END;
 /
 
@@ -488,10 +498,6 @@ BEGIN
     END IF;
 END;
 /
-
-
-
-
 
 -- EXPERIENCE
 --liste d'attente 
@@ -563,7 +569,7 @@ FOR EACH ROW
 DECLARE
     v_nb_exp_en_attente NUMBER;
     v_nb_exp_doublees NUMBER;
-    v_coeff_prix_prio NUMBER; -- Correction: supprimer 'F' en trop
+    v_coeff_prix_prio NUMBER; 
 BEGIN
     SELECT COUNT(*) INTO v_nb_exp_en_attente FROM EXPERIENCE WHERE ETAT_EXPERIENCE = 'en attente';
     SELECT COUNT(*) INTO v_nb_exp_doublees FROM EXPERIENCE WHERE ETAT_EXPERIENCE = 'en attente' AND PRIORITE_EXPERIENCE > :NEW.PRIORITE_EXPERIENCE;
