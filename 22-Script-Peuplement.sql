@@ -57,37 +57,9 @@ END;
 --------------------------------------------------------------------------------
 
 --ACHETER
-INSERT INTO ACHETER (ID_FOURNISSEUR, ID_LOT) VALUES (1, 1);
-INSERT INTO ACHETER (ID_FOURNISSEUR, ID_LOT) VALUES (2, 2);
+--INSERT INTO ACHETER (ID_FOURNISSEUR, ID_LOT) VALUES (1, 1);
+--INSERT INTO ACHETER (ID_FOURNISSEUR, ID_LOT) VALUES (2, 2);
 
---EQUIPE
-CREATE OR REPLACE PROCEDURE INSERER_EQUIPE_ALEATOIRE (
-  p_nb_equipes IN NUMBER
-) IS
-  p_adresse_equipe VARCHAR2(50);
-  p_solde_equipe NUMBER;
-BEGIN
-  FOR i IN 1..p_nb_equipes LOOP
-    -- Générer une adresse aléatoire
-    p_adresse_equipe := DBMS_RANDOM.STRING('A', 10) || ' ' || DBMS_RANDOM.STRING('A', 10) || ' ' || DBMS_RANDOM.STRING('N', 4);
-
-    -- Générer un solde aléatoire entre 1000 et 10000
-    p_solde_equipe := TRUNC(DBMS_RANDOM.VALUE(1000, 10001));
-
-    -- Insérer une nouvelle équipe avec des valeurs aléatoires
-    INSERT INTO EQUIPE (ID_EQUIPE, ADRESSE_EQUIPE, SOLDE_EQUIPE)
-    VALUES (SEQ_ID_EQUIPE.NEXTVAL, p_adresse_equipe, p_solde_equipe);
-  END LOOP;
-
-  COMMIT; -- Optionnel : commettre la transaction immédiatement après l'insertion
-EXCEPTION
-  WHEN OTHERS THEN
-    -- Vous pouvez ajouter un traitement des erreurs personnalisé ici, comme la journalisation des erreurs
-    RAISE; -- Re-lever l'exception pour propager l'erreur à l'appelant
-END INSERER_EQUIPE_ALEATOIRE;
-/
-
-EXEC INSERER_EQUIPE_ALEATOIRE(10);
 
 --CHERCHEUR
 CREATE OR REPLACE PROCEDURE PEUPLE_CHERCHEUR(nb_lignes IN NUMBER) AS
@@ -121,6 +93,34 @@ END;
 
 EXEC PEUPLE_CHERCHEUR(10);
 
+--EQUIPE
+CREATE OR REPLACE PROCEDURE INSERER_EQUIPE_ALEATOIRE (
+  p_nb_equipes IN NUMBER
+) IS
+  p_adresse_equipe VARCHAR2(50);
+  p_solde_equipe NUMBER;
+BEGIN
+  FOR i IN 1..p_nb_equipes LOOP
+    -- Générer une adresse aléatoire
+    p_adresse_equipe := DBMS_RANDOM.STRING('A', 10) || ' ' || DBMS_RANDOM.STRING('A', 10) || ' ' || DBMS_RANDOM.STRING('N', 4);
+
+    -- Générer un solde aléatoire entre 1000 et 10000
+    p_solde_equipe := TRUNC(DBMS_RANDOM.VALUE(1000, 10001));
+
+    -- Insérer une nouvelle équipe avec des valeurs aléatoires
+    INSERT INTO EQUIPE (ID_EQUIPE, ADRESSE_EQUIPE, SOLDE_EQUIPE)
+    VALUES (SEQ_ID_EQUIPE.NEXTVAL, p_adresse_equipe, p_solde_equipe);
+  END LOOP;
+
+  COMMIT; -- Optionnel : commettre la transaction immédiatement après l'insertion
+EXCEPTION
+  WHEN OTHERS THEN
+    -- Vous pouvez ajouter un traitement des erreurs personnalisé ici, comme la journalisation des erreurs
+    RAISE; -- Re-lever l'exception pour propager l'erreur à l'appelant
+END INSERER_EQUIPE_ALEATOIRE;
+/
+
+EXEC INSERER_EQUIPE_ALEATOIRE(10);
 
 -- FACTURE
 CREATE OR REPLACE PROCEDURE PEUPLE_FACTURE(nb_lignes IN NUMBER) DETERMINISTIC AS 
@@ -162,6 +162,9 @@ BEGIN
 END;
 /
 
+--LISTE ATTENTE
+INSERT INTO LISTEATTENTE (ID_LISTE, NB_EXP_ATTENTE, EXPERIENCE, NB_EXP_DOUBLE) VALUES (1, 10, 1, 5);
+
 --APPAREIL
 CREATE OR REPLACE PROCEDURE PEUPLEMENT_APPAREIL AS
   v_next_id_appareil NUMBER;
@@ -178,7 +181,6 @@ BEGIN
   COMMIT;
 END PEUPLEMENT_APPAREIL;
 /
-
 
 EXEC PEUPLEMENT_APPAREIL;
 
@@ -232,11 +234,30 @@ END PEUPLE_EXPERIENCE;
 
 EXECUTE PEUPLE_EXPERIENCE(10);
 
---LISTE ATTENTE
-INSERT INTO LISTEATTENTE (ID_LISTE, NB_EXP_ATTENTE, EXPERIENCE, NB_EXP_DOUBLE) VALUES (1, 10, 1, 5);
 
 --PLAQUE
-INSERT INTO PLAQUE (ID_PLAQUE, ID_LOT, TYPE_PLAQUE, NB_EXPERIENCE_PLAQUE, ETAT_PLAQUE) VALUES (1, 1, 384, 50, 'EtatPlaque');
+CREATE OR REPLACE PROCEDURE peupler_table_plaques AS
+BEGIN
+    FOR i IN 1..6 LOOP -- Changer 6 au nombre de lignes que vous souhaitez insérer
+        INSERT INTO votre_table_plaques (ID_PLAQUE, ID_LOT, TYPE_PLAQUE, NB_EXPERIENCE_PLAQUE, ETAT_PLAQUE)
+        VALUES (LLAIR.SEQ_ID_PLAQUE.NEXTVAL, -- Utilisation de la séquence pour générer ID_PLAQUE
+                i, -- Remplacer par la valeur appropriée pour ID_LOT
+                FLOOR(DBMS_RANDOM.VALUE(1, 10)), -- Remplacer 10 par le nombre maximum pour TYPE_PLAQUE
+                FLOOR(DBMS_RANDOM.VALUE(1, 100)), -- Remplacer 100 par le nombre maximum pour NB_EXPERIENCE_PLAQUE
+                CASE MOD(i, 3) -- Générer un état aléatoire
+                    WHEN 0 THEN 'Bon'
+                    WHEN 1 THEN 'Moyen'
+                    ELSE 'Mauvais'
+                END);
+    END LOOP;
+    COMMIT; -- Valider les changements
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK; -- En cas d'erreur, annuler les changements
+        RAISE; -- Propager l'exception pour la gestion externe
+END;
+/
+
 
 
 
