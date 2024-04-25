@@ -1,10 +1,10 @@
+-- Supprimer tous les déclencheurs de votre liste
 DROP TRIGGER T_check_type_plaque;
 DROP TRIGGER T_check_valeur_biais2;
 DROP TRIGGER T_check_nb_slots_groupe;
 DROP TRIGGER T_chek_valpos_ACHETER;
 DROP TRIGGER T_chek_valpos_APPAREIL;
 DROP TRIGGER T_chek_valpos_CHERCHEUR;
-DROP TRIGGER T_chek_valpos_EQUIPE;
 DROP TRIGGER T_chek_valpos_EXPERIENCE;
 DROP TRIGGER T_chek_valpos_FACTURE;
 DROP TRIGGER T_chek_valpos_FOURNISSEUR;
@@ -15,23 +15,33 @@ DROP TRIGGER T_chek_valpos_PLAQUE;
 DROP TRIGGER T_chek_valpos_SLOT;
 DROP TRIGGER T_chek_valpos_STOCK;
 DROP TRIGGER T_chek_valpos_TECHNICIEN;
-DROP TRIGGER T_slot_par_groupe;
-DROP TRIGGER T_prix_experience;
-DROP TRIGGER T_panne_app;
-DROP TRIGGER T_lancement_experience;
+--Resultat
 DROP TRIGGER T_resultat_experience;
+-- GROUPESLOT--
 DROP TRIGGER after_experience_update;
-DROP TRIGGER refus_plaque_trigger;
+--LOT --
 DROP TRIGGER T_arrivee_lot;
 DROP TRIGGER T_stock_plaque;
+-- Facture--
 DROP TRIGGER T_FACTURE;
-DROP TRIGGER T_APPAREIL;
-DROP TRIGGER T_LISTE_ATTENTE;
-DROP TRIGGER CALCUL_FREQUENCE_OBSERVATION;
 DROP TRIGGER UPDATE_SOLDE_EQUIPE;
-DROP TRIGGER Contrainte_statut_experience;
-DROP TRIGGER T_suppression_plaque;
-DROP TRIGGER T_suppression_appareil;
+-- Appareil
+DROP TRIGGER T_APPAREIL;
+DROP TRIGGER T_panne_app;
+--Expérience --
+DROP TRIGGER T_LISTE_ATTENTE;
+--Expérience
+DROP TRIGGER T_lancement_experience;
+DROP TRIGGER T_prix_experience;
+DROP TRIGGER Contrainte_nb_releves_photo;
+DROP TRIGGER Acceptation_biais;
+DROP TRIGGER refus_plaque_trigger;
+
+
+
+/*========================================*/
+--              TRIGGER DE CHECK
+/*========================================*/
 
 CREATE OR REPLACE TRIGGER T_check_type_plaque
 BEFORE INSERT OR UPDATE ON PLAQUE
@@ -47,7 +57,6 @@ EXCEPTION
         RAISE_APPLICATION_ERROR(-20000, 'Le type de plaque doit être 96 ou 384');
 END;
 /
-
 CREATE OR REPLACE TRIGGER T_check_valeur_biais2
 BEFORE INSERT OR UPDATE ON EXPERIENCE
 FOR EACH ROW
@@ -62,7 +71,6 @@ EXCEPTION
         RAISE_APPLICATION_ERROR(-20001, 'La valeur de biais A2 doit être supérieure ou égale à la valeur de biais A1');
 END;
 /
-
 -- Trigger nombre de slots par plaque : Erreur si le nombre de slots par plaque n'est pas équivalent 
 CREATE OR REPLACE TRIGGER T_check_nb_slots_groupe
 BEFORE INSERT OR UPDATE ON GROUPESLOT
@@ -82,7 +90,6 @@ EXCEPTION
         RAISE_APPLICATION_ERROR(-20002, 'Le nombre de slots par groupe doit être cohérent avec le type de plaque');
 END;
 /
-
 -- Trigger pour avoir aucun nombre négatif dans les tables 
 -- Table acheter : 
 CREATE OR REPLACE TRIGGER T_chek_valpos_ACHETER
@@ -99,8 +106,6 @@ EXCEPTION
         RAISE_APPLICATION_ERROR (-20001, 'La valeur ne peut pas être négative dans la table ACHETER');
 END;
 /
-
---
 --APPAREIL
 CREATE OR REPLACE TRIGGER T_chek_valpos_APPAREIL
 BEFORE INSERT OR UPDATE ON APPAREIL
@@ -120,9 +125,6 @@ EXCEPTION
         RAISE_APPLICATION_ERROR (-20003, 'L''appareil n''est pas disponible');
 END;
 /
-
-
---
 --CHERCHEUR 
 CREATE OR REPLACE TRIGGER T_chek_valpos_CHERCHEUR
 BEFORE INSERT OR UPDATE ON CHERCHEUR
@@ -138,8 +140,6 @@ EXCEPTION
         RAISE_APPLICATION_ERROR (-20003, 'La valeur ne peut pas être négative dans la table CHERCHEUR');
 END;
 /
-
---
 --EXPERIENCE
 CREATE OR REPLACE TRIGGER T_chek_valpos_EXPERIENCE
 BEFORE INSERT OR UPDATE ON EXPERIENCE
@@ -160,8 +160,6 @@ EXCEPTION
         RAISE_APPLICATION_ERROR (-20005, 'La valeur ne peut pas être négative dans la table EXPERIENCE');
 END;
 /
-
---
 --FACTURE
 CREATE OR REPLACE TRIGGER T_chek_valpos_FACTURE
 BEFORE INSERT OR UPDATE ON FACTURE
@@ -177,8 +175,6 @@ EXCEPTION
         RAISE_APPLICATION_ERROR (-20006, 'La valeur ne peut pas être négative dans la table FACTURE');
 END;
 /
-
---
 --FOURNISSEUR
 CREATE OR REPLACE TRIGGER T_chek_valpos_FOURNISSEUR
 BEFORE INSERT OR UPDATE ON FOURNISSEUR
@@ -194,8 +190,6 @@ EXCEPTION
         RAISE_APPLICATION_ERROR (-20007, 'La valeur ne peut pas être négative dans la table FOURNISSEUR');
 END;
 /
-
---
 --GROUPESLOT
 CREATE OR REPLACE TRIGGER T_chek_valpos_GROUPESLOT
 BEFORE INSERT OR UPDATE ON GROUPESLOT
@@ -212,8 +206,6 @@ EXCEPTION
         RAISE_APPLICATION_ERROR (-20008, 'La valeur ne peut pas être négative dans la table GROUPESLOT');
 END;
 /
-
---
 --LISTEATTENTE
 CREATE OR REPLACE TRIGGER T_chek_valpos_LISTEATTENTE
 BEFORE INSERT OR UPDATE ON LISTEATTENTE
@@ -229,8 +221,6 @@ EXCEPTION
         RAISE_APPLICATION_ERROR (-20009, 'La valeur ne peut pas être négative dans la table LISTEATTENTE');
 END;
 /
-
---
 --LOT
 CREATE OR REPLACE TRIGGER T_chek_valpos_LOT
 BEFORE INSERT OR UPDATE ON LOT
@@ -246,8 +236,6 @@ EXCEPTION
         RAISE_APPLICATION_ERROR (-20010, 'La valeur ne peut pas être négative dans la table LOT');
 END;
 /
-
---
 --PLAQUE
 CREATE OR REPLACE TRIGGER T_chek_valpos_PLAQUE
 BEFORE INSERT OR UPDATE ON PLAQUE
@@ -263,8 +251,6 @@ EXCEPTION
         RAISE_APPLICATION_ERROR (-20010, 'La valeur ne peut pas être négative dans la table PLAQUE');
 END;
 /
-
---
 --SLOT
 CREATE OR REPLACE TRIGGER T_chek_valpos_SLOT
 BEFORE INSERT OR UPDATE ON SLOT
@@ -283,8 +269,6 @@ EXCEPTION
         RAISE_APPLICATION_ERROR (-20011, 'La valeur ne peut pas être négative dans la table SLOT');
 END;
 /
-
---
 --STOCK
 CREATE OR REPLACE TRIGGER T_chek_valpos_STOCK
 BEFORE INSERT OR UPDATE ON STOCK
@@ -301,8 +285,6 @@ EXCEPTION
         RAISE_APPLICATION_ERROR (-20012, 'La valeur ne peut pas être négative dans la table STOCK');
 END;
 /
-
---
 --TECHNICIEN
 CREATE OR REPLACE TRIGGER T_chek_valpos_TECHNICIEN
 BEFORE INSERT OR UPDATE ON TECHNICIEN
@@ -319,30 +301,180 @@ EXCEPTION
 END;
 /
 
+/*========================================*/
+--              TRIGGER
+/*========================================*/
 
-// CONTRAINTE SUR LE PRIX DE L'EXPERIENCE
-CREATE OR REPLACE TRIGGER T_prix_experience
-BEFORE INSERT OR UPDATE ON EXPERIENCE
+-- RESULTAT--
+-- Trigger selon le résultat d'une expérience
+CREATE OR REPLACE TRIGGER T_resultat_experience
+AFTER INSERT OR UPDATE ON RESULTAT_EXPERIENCE
 FOR EACH ROW
 DECLARE
-    v_nb_exp_en_attente NUMBER;
-    v_nb_exp_doublees NUMBER;
-    v_coeff_prix_prio NUMBER; -- Correction: supprimer 'F' en trop
+    v_id_experience RESULTAT_EXPERIENCE.ID_EXPERIENCE%TYPE;
+    v_nb_resultats_refuses NUMBER;
+    v_nb_resultats_totaux NUMBER;
 BEGIN
-    SELECT COUNT(*) INTO v_nb_exp_en_attente FROM EXPERIENCE WHERE ETAT_EXPERIENCE = 'en attente';
-    SELECT COUNT(*) INTO v_nb_exp_doublees FROM EXPERIENCE WHERE ETAT_EXPERIENCE = 'en attente' AND PRIORITE_EXPERIENCE > :NEW.PRIORITE_EXPERIENCE;
-    IF :NEW.PRIORITE_EXPERIENCE > 1 THEN
-        v_coeff_prix_prio := (v_nb_exp_en_attente + v_nb_exp_doublees) / v_nb_exp_en_attente;
+    SELECT ID_EXPERIENCE INTO v_id_experience FROM RESULTAT_EXPERIENCE WHERE ID_RESULTAT = :NEW.ID_RESULTAT;
+    SELECT COUNT(*) INTO v_nb_resultats_refuses FROM RESULTAT_EXPERIENCE WHERE ID_EXPERIENCE = v_id_experience AND MOYENNE < 10; -- Exemple d'un critère pour déterminer un résultat refusé
+    SELECT COUNT(*) INTO v_nb_resultats_totaux FROM RESULTAT_EXPERIENCE WHERE ID_EXPERIENCE = v_id_experience;
+    IF v_nb_resultats_refuses = 0 THEN
+        UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'validée' WHERE ID_EXPERIENCE = v_id_experience;
+    ELSIF v_nb_resultats_refuses / v_nb_resultats_totaux > 0.3 THEN
+        UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'refusée' WHERE ID_EXPERIENCE = v_id_experience;
     ELSE
-        v_coeff_prix_prio := 1;
+        UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'à vérifier' WHERE ID_EXPERIENCE = v_id_experience;
     END IF;
-    :NEW.COEFF_PRIX_PRIO_EXPERIENCE := v_coeff_prix_prio;
+END;
+/
+
+-- GROUPESLOT--
+-- Trigger de validation de l'expérience en passant tout d'abord par la validation des slots et des groupes de slots
+CREATE OR REPLACE TRIGGER after_experience_update
+AFTER UPDATE OF VALIDITE_GROUPE ON GROUPESLOT
+FOR EACH ROW
+DECLARE
+  v_nb_groupes_valides NUMBER;
+  v_nb_groupes_necessaires NUMBER;
+  v_nb_slots_valides NUMBER;
+  v_nb_slots_necessaires NUMBER;
+BEGIN
+  -- Vérifier que tous les groupes de slots nécessaires ont été validés
+  SELECT COUNT(*), COUNT(CASE WHEN g.VALIDITE_GROUPE = 'Validé' THEN 1 END)
+  INTO v_nb_groupes_necessaires, v_nb_groupes_valides
+  FROM GROUPESLOT g
+  JOIN EXPERIENCE e ON g.ID_EXPERIENCE = e.ID_EXPERIENCE
+  WHERE e.ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
+
+  IF v_nb_groupes_valides < v_nb_groupes_necessaires THEN
+    RAISE_APPLICATION_ERROR(-20001, 'Tous les groupes de slots nécessaires n''ont pas été validés.');
+  END IF;
+
+  -- Vérifier que tous les slots nécessaires ont été validés
+  SELECT COUNT(*), COUNT(CASE WHEN s.VALIDE = 'Validé' THEN 1 END)
+  INTO v_nb_slots_necessaires, v_nb_slots_valides
+  FROM SLOT s
+  JOIN GROUPESLOT g ON s.ID_GROUPE = g.ID_GROUPE
+  JOIN EXPERIENCE e ON g.ID_EXPERIENCE = e.ID_EXPERIENCE
+  WHERE e.ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
+
+  IF v_nb_slots_valides < v_nb_slots_necessaires THEN
+    RAISE_APPLICATION_ERROR(-20002, 'Tous les slots nécessaires n''ont pas été validés.');
+  END IF;
+
+  -- Si tous les groupes de slots et slots nécessaires ont été validés, mettre à jour l'état de l'expérience en conséquence
+  UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'Validée' WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
+END;
+/
+
+--LOT --
+-- Trigger d'automatisation qui met à jour le stock suite à l'ajout d'un lot à la BDD   
+-- a debeug--
+CREATE OR REPLACE TRIGGER T_arrivee_lot
+AFTER INSERT ON LOT
+FOR EACH ROW
+DECLARE
+    v_quantite_stock PLS_INTEGER;
+BEGIN
+    IF :NEW.TYPE_PLAQUE_LOT = 96 THEN
+        SELECT QUANTITE_P96 INTO v_quantite_stock
+        FROM STOCK
+        WHERE ID_STOCK = :NEW.ID_STOCK;
+
+        IF v_quantite_stock IS NULL OR v_quantite_stock = 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Le stock sélectionné ne contient pas de plaques 96 slots.');
+        ELSE
+            UPDATE STOCK
+            SET QUANTITE_P96 = QUANTITE_P96 + :NEW.NB_PLAQUES
+            WHERE ID_STOCK = :NEW.ID_STOCK;
+        END IF;
+    ELSIF :NEW.TYPE_PLAQUE_LOT = 384 THEN
+        SELECT QUANTITE_P384 INTO v_quantite_stock
+        FROM STOCK
+        WHERE ID_STOCK = :NEW.ID_STOCK;
+
+        IF v_quantite_stock IS NULL OR v_quantite_stock = 0 THEN
+            RAISE_APPLICATION_ERROR(-20002, 'Le stock sélectionné ne contient pas de plaques 384 slots.');
+        ELSE
+            UPDATE STOCK
+            SET QUANTITE_P384 = QUANTITE_P384 + :NEW.NB_PLAQUES
+            WHERE ID_STOCK = :NEW.ID_STOCK;
+        END IF;
+    ELSE
+        RAISE_APPLICATION_ERROR(-20003, 'Le type de plaque du lot ajouté est invalide.');
+    END IF;
+END;
+/
+
+CREATE OR REPLACE TRIGGER T_stock_plaque
+AFTER INSERT OR DELETE ON LOT
+FOR EACH ROW
+DECLARE
+    v_operation VARCHAR2(10); -- Utilisez VARCHAR2(1) car v_operation stocke un seul caractère (+ ou -)
+    v_nb_plaques NUMBER;
+BEGIN
+    IF INSERTING THEN
+        v_operation := '+';
+        v_nb_plaques := :NEW.NB_PLAQUES;
+    ELSIF DELETING THEN
+        v_operation := '-';
+        v_nb_plaques := :OLD.NB_PLAQUES;
+    END IF;
+
+    UPDATE STOCK 
+    SET QUANTITE_P96 = CASE WHEN TYPE_PLAQUE = 96 THEN QUANTITE_P96 + v_nb_plaques ELSE QUANTITE_P96 END,
+        QUANTITE_P384 = CASE WHEN TYPE_PLAQUE = 384 THEN QUANTITE_P384 + v_nb_plaques ELSE QUANTITE_P384 END;
 END;
 /
 
 
+-- FACTURE --
+-- Trigger Facture, date non nul et égale a 01 uniquement, equipe non null      --ok
+CREATE OR REPLACE TRIGGER T_FACTURE
+BEFORE INSERT ON FACTURE
+FOR EACH ROW
+BEGIN
+  IF :NEW.MONTANT_FACTURE IS NULL THEN
+    RAISE_APPLICATION_ERROR(-20004, 'Le montant de la facture ne peut pas être nul');
+  END IF;
 
-//Contrainte sur le changement d'état des expériences lorsque l'appareil est en panne
+  IF :NEW.DATE_FACTURE IS NULL THEN
+    RAISE_APPLICATION_ERROR(-20002, 'La date de facturation ne peut pas être nulle');
+  END IF;
+
+  IF TO_CHAR(:NEW.DATE_FACTURE, 'DD') != '01' THEN
+    RAISE_APPLICATION_ERROR(-20000, 'La date de facturation doit être le premier jour du mois.');
+  END IF;
+END;
+/
+-- Trigger modification du solde équipe   ok          
+CREATE OR REPLACE TRIGGER UPDATE_SOLDE_EQUIPE
+AFTER INSERT ON FACTURE
+FOR EACH ROW
+BEGIN
+  UPDATE EQUIPE
+     SET SOLDE_EQUIPE = SOLDE_EQUIPE + :NEW.MONTANT_FACTURE
+   WHERE ID_EQUIPE = :NEW.ID_EQUIPE;
+END;
+/
+
+-- APPAREIL --
+-- Trigger appareil ok                
+CREATE OR REPLACE TRIGGER T_APPAREIL
+BEFORE INSERT ON APPAREIL
+FOR EACH ROW
+DECLARE
+   LAST_RANG INTEGER;
+BEGIN
+  SELECT MAX(POSITION_APPAREIL) INTO  LAST_RANG FROM APPAREIL;
+  IF  LAST_RANG IS NULL THEN
+     LAST_RANG := 0;
+  END IF;
+  :NEW.POSITION_APPAREIL :=  LAST_RANG + 1;
+  :NEW.ETAT_APPAREIL := 'disponible';
+END;
+/
+/*Contrainte sur le changement d'état des expériences lorsque l'appareil est en panne a faire*/
 CREATE OR REPLACE TRIGGER T_panne_app
 AFTER UPDATE OF ETAT_APPAREIL ON APPAREIL
 FOR EACH ROW
@@ -350,19 +482,44 @@ DECLARE
     v_id_experience EXPERIENCE.ID_EXPERIENCE%TYPE;
 BEGIN
     IF :OLD.ETAT_APPAREIL = 'disponible' AND :NEW.ETAT_APPAREIL = 'en panne' THEN
-        FOR r IN (SELECT ID_EXPERIENCE FROM EXPERIENCE WHERE ID_APPAREIL = :OLD.ID_APPAREIL AND ETAT_EXPERIENCE = 'à programmer') LOOP
-            UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'en attente' WHERE ID_EXPERIENCE = r.ID_EXPERIENCE;
+        FOR z IN (SELECT ID_EXPERIENCE FROM EXPERIENCE WHERE ID_APPAREIL = :OLD.ID_APPAREIL AND ETAT_EXPERIENCE = 'à programmer') LOOP
+            UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'en attente' WHERE ID_EXPERIENCE = z.ID_EXPERIENCE;
         END LOOP;
     END IF;
 END;
 /
 
 
+
+
+
+-- EXPERIENCE
+--liste d'attente 
+--ok
+CREATE OR REPLACE TRIGGER T_LISTE_ATTENTE
+AFTER INSERT ON EXPERIENCE
+FOR EACH ROW
+DECLARE
+  v_nb_exp_attente  NUMBER;
+BEGIN
+  -- Récupérer le nombre actuel d'expériences en attente pour la liste concernée
+  SELECT NB_EXP_ATTENTE
+  INTO v_nb_exp_attente
+  FROM LISTEATTENTE
+  WHERE ID_LISTE = :NEW.ID_LISTE;
+
+  -- Mettre à jour le nombre d'expériences en attente pour la liste concernée
+  UPDATE LISTEATTENTE
+  SET NB_EXP_ATTENTE = v_nb_exp_attente + 1
+  WHERE ID_LISTE = :NEW.ID_LISTE;
+END;
+/
 --Triger d'automatisation pour les expériences :
 /*Quand une epérience est lancée par un chercheur (insert), le tehcnicien update son statut et le groupe de slot ainsi que les slots se remplisse automatiquement
 Appareil fait update sur le slot qui va faire un update sur le groupe de slots qui va faire un update sur l'expérience (statut = valide ou pas ?) 
 donc on doit pas faire les procédures de peuplement des groupes de slots et des slots
 */
+-- ok
 CREATE OR REPLACE TRIGGER T_lancement_experience
 AFTER INSERT ON EXPERIENCE
 FOR EACH ROW
@@ -390,363 +547,38 @@ BEGIN
 
     -- Insérer des slots pour chaque slot nécessaire dans le groupe de slots
     FOR j IN 1..:NEW.NB_SLOTS_PAR_GROUPE_EXPERIENCE LOOP
-      INSERT INTO SLOT (ID_GROUPE, COULEUR_SLOT, NUMERO_SLOT, POSITION_X_SLOT, POSITION_Y_SLOT, RM_SLOT, RD_SLOT, VM_SLOT, VD_SLOT, BM_SLOT, BD_SLOT, TM_SLOT, TD_SLOT, VALIDITE_SLOT)
+      INSERT INTO SLOT (ID_GROUPE, COULEUR_SLOT, NUMERO_SLOT, POSITION_X_SLOT, POSITION_Y_SLOT, RM_SLOT, RD_SLOT, VM_SLOT, VD_SLOT, BM_SLOT, BD_SLOT, TM_SLOT, TD_SLOT, VALIDE)
       VALUES (seq_id_groupeslot.CURRVAL, NULL, j, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Non validé');
     END LOOP;
   END LOOP;
 END;
 /
 
--- Trigger selon le résultat d'une expérience
-CREATE OR REPLACE TRIGGER T_resultat_experience
-AFTER INSERT OR UPDATE ON RESULTAT
+
+// CONTRAINTE SUR LE PRIX DE L'EXPERIENCE
+--ok
+CREATE OR REPLACE TRIGGER T_prix_experience
+BEFORE INSERT OR UPDATE ON EXPERIENCE
 FOR EACH ROW
 DECLARE
-    v_id_experience RESULTAT.ID_EXPERIENCE%TYPE;
-    v_nb_resultats_refuses NUMBER;
-    v_nb_resultats_totaux NUMBER;
+    v_nb_exp_en_attente NUMBER;
+    v_nb_exp_doublees NUMBER;
+    v_coeff_prix_prio NUMBER; -- Correction: supprimer 'F' en trop
 BEGIN
-    SELECT ID_EXPERIENCE INTO v_id_experience FROM RESULTAT WHERE ID_RESULTAT = :NEW.ID_RESULTAT;
-    SELECT COUNT(*) INTO v_nb_resultats_refuses FROM RESULTAT WHERE ID_EXPERIENCE = v_id_experience AND RESULTAT_VALIDE = 'N';
-    SELECT COUNT(*) INTO v_nb_resultats_totaux FROM RESULTAT WHERE ID_EXPERIENCE = v_id_experience;
-    IF v_nb_resultats_refuses = 0 THEN
-        UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'validée' WHERE ID_EXPERIENCE = v_id_experience;
-    ELSIF v_nb_resultats_refuses / v_nb_resultats_totaux > 0.3 THEN
-        UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'refusée' WHERE ID_EXPERIENCE = v_id_experience;
+    SELECT COUNT(*) INTO v_nb_exp_en_attente FROM EXPERIENCE WHERE ETAT_EXPERIENCE = 'en attente';
+    SELECT COUNT(*) INTO v_nb_exp_doublees FROM EXPERIENCE WHERE ETAT_EXPERIENCE = 'en attente' AND PRIORITE_EXPERIENCE > :NEW.PRIORITE_EXPERIENCE;
+    IF :NEW.PRIORITE_EXPERIENCE > 1 THEN
+        v_coeff_prix_prio := (v_nb_exp_en_attente + v_nb_exp_doublees) / v_nb_exp_en_attente;
     ELSE
-        UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'à vérifier' WHERE ID_EXPERIENCE = v_id_experience;
+        v_coeff_prix_prio := 1;
     END IF;
+    :NEW.COEFF_PRIX_PRIO_EXPERIENCE := v_coeff_prix_prio;
 END;
 /
 
--- Trigger de validation de l'expérience en passant tout d'abord par la validation des slots et des groupes de slots
-CREATE OR REPLACE TRIGGER after_experience_update
-AFTER UPDATE OF VALIDITE_GROUPE ON GROUPESLOT
-FOR EACH ROW
-DECLARE
-  v_nb_groupes_valides NUMBER;
-  v_nb_groupes_necessaires NUMBER;
-  v_nb_slots_valides NUMBER;
-  v_nb_slots_necessaires NUMBER;
-BEGIN
-  -- Vérifier que tous les groupes de slots nécessaires ont été validés
-  SELECT COUNT(*), COUNT(CASE WHEN g.VALIDITE_GROUPE = 'Validé' THEN 1 END)
-  INTO v_nb_groupes_necessaires, v_nb_groupes_valides
-  FROM GROUPESLOT g
-  JOIN EXPERIENCE e ON g.ID_EXPERIENCE = e.ID_EXPERIENCE
-  WHERE e.ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
-
-  IF v_nb_groupes_valides < v_nb_groupes_necessaires THEN
-    RAISE_APPLICATION_ERROR(-20001, 'Tous les groupes de slots nécessaires n''ont pas été validés.');
-  END IF;
-
-  -- Vérifier que tous les slots nécessaires ont été validés
-  SELECT COUNT(*), COUNT(CASE WHEN s.VALIDITE_SLOT = 'Validé' THEN 1 END)
-  INTO v_nb_slots_necessaires, v_nb_slots_valides
-  FROM SLOT s
-  JOIN GROUPESLOT g ON s.ID_GROUPE = g.ID_GROUPE
-  JOIN EXPERIENCE e ON g.ID_EXPERIENCE = e.ID_EXPERIENCE
-  WHERE e.ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
-
-  IF v_nb_slots_valides < v_nb_slots_necessaires THEN
-    RAISE_APPLICATION_ERROR(-20002, 'Tous les slots nécessaires n''ont pas été validés.');
-  END IF;
-
-  -- Si tous les groupes de slots et slots nécessaires ont été validés, mettre à jour l'état de l'expérience en conséquence
-  UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'Validée' WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
-END;
-/
-
-/*----------------------------------------------------------------------------*\
-/ --Trigger qui gère le refus d'une plaque 
-/*----------------------------------------------------------------------------*\
-CREATE OR REPLACE TRIGGER refus_plaque_trigger
-AFTER INSERT ON T_refus_plaque
-FOR EACH ROW
-DECLARE
-    v_experience_id NUMBER;
-BEGIN
-    -- Récupérer l'identifiant de l'expérience associée au refus
-    v_experience_id := :NEW.experience_id;
-
-    -- Simuler un refus de plaque ou de groupe en mettant à jour le statut de l'expérience
-    UPDATE EXPERIENCE
-    SET statut = 'Echoué'
-    WHERE ID_EXPERIENCE = v_experience_id;
-
-    -- Ajouter l'expérience à renouveler
-    INSERT INTO LISTEATTENTE (ID_EXPERIENCE, NB_EXP_ATTENTE)
-    VALUES (v_experience_id, 1);
-
-    -- Commit pour valider les changements
-    COMMIT;
-EXCEPTION
-    -- Gérer les exceptions
-    WHEN OTHERS THEN
-        -- Afficher l'erreur
-        DBMS_OUTPUT.PUT_LINE('Erreur : ' || SQLERRM);
-        -- Rollback pour annuler les changements en cas d'erreur
-        ROLLBACK;
-END;
-/
---------------------------------------------------------------------------------
-
-/*============================================================================*/
-/*  Trigger d'automatisation qui met à jour le stock suite à l'ajout d'un lot à la BDD         /*
-/*============================================================================*/
-CREATE OR REPLACE TRIGGER T_arrivee_lot
-AFTER INSERT ON LOT
-FOR EACH ROW
-DECLARE
-    v_quantite_stock PLS_INTEGER;
-BEGIN
-    IF :NEW.TYPE_PLAQUE_LOT = 96 THEN
-        SELECT S.QUANTITE_P96 INTO v_quantite_stock
-        FROM STOCK S
-        WHERE S.ID_STOCK = :NEW.ID_STOCK;
-
-        IF v_quantite_stock IS NULL OR v_quantite_stock = 0 THEN
-            RAISE_APPLICATION_ERROR(-20001, 'Le stock sélectionné ne contient pas de plaques 96 slots.');
-        ELSE
-            UPDATE STOCK
-            SET QUANTITE_P96 = QUANTITE_P96 + :NEW.NB_PLAQUES
-            WHERE ID_STOCK = :NEW.ID_STOCK;
-        END IF;
-    ELSIF :NEW.TYPE_PLAQUE_LOT = 384 THEN
-        SELECT S.QUANTITE_P384 INTO v_quantite_stock
-        FROM STOCK S
-        WHERE S.ID_STOCK = :NEW.ID_STOCK;
-
-        IF v_quantite_stock IS NULL OR v_quantite_stock = 0 THEN
-            RAISE_APPLICATION_ERROR(-20002, 'Le stock sélectionné ne contient pas de plaques 384 slots.');
-        ELSE
-            UPDATE STOCK
-            SET QUANTITE_P384 = QUANTITE_P384 + :NEW.NB_PLAQUES
-            WHERE ID_STOCK = :NEW.ID_STOCK;
-        END IF;
-    ELSE
-        RAISE_APPLICATION_ERROR(-20003, 'Le type de plaque du lot ajouté est invalide.');
-    END IF;
-END;
-/
-
-CREATE OR REPLACE TRIGGER T_stock_plaque
-AFTER INSERT OR DELETE ON LOT
-FOR EACH ROW
-DECLARE
-    v_operation VARCHAR2(10);
-    v_nb_plaques NUMBER;
-BEGIN
-    IF INSERTING THEN
-        v_operation := '+';
-        v_nb_plaques := :NEW.NB_PLAQUES;
-    ELSIF DELETING THEN
-        v_operation := '-';
-        v_nb_plaques := :OLD.NB_PLAQUES;
-    END IF;
-    UPDATE STOCK SET QUANTITE_P96 = QUANTITE_P96 || v_operation || v_nb_plaques WHERE TYPE_PLAQUE = 96;
-    UPDATE STOCK SET QUANTITE_P384 = QUANTITE_P384 || v_operation || v_nb_plaques WHERE TYPE_PLAQUE = 384;
-END;
-/
---------------------------------------------------------------------------------
-
-/*==============================================================*/
-/* Trigger Facture, date non nul et égale a 01 uniquement, equipe non null                         */
-/*==============================================================*/
-CREATE OR REPLACE TRIGGER T_FACTURE
-BEFORE INSERT ON FACTURE
-FOR EACH ROW
-BEGIN
-  IF :NEW.MONTANT_FACTURE IS NULL THEN
-    RAISE_APPLICATION_ERROR(-20004, 'Le montant de la facture ne peut pas être nul');
-  END IF;
-
-  IF :NEW.DATE_FACTURE IS NULL THEN
-    RAISE_APPLICATION_ERROR(-20002, 'La date de facturation ne peut pas être nulle');
-  END IF;
-
-  IF TO_CHAR(:NEW.DATE_FACTURE, 'DD') != '01' THEN
-    RAISE_APPLICATION_ERROR(-20000, 'La date de facturation doit être le premier jour du mois.');
-  END IF;
-END;
-
-/*==============================================================*/
-/* Trigger modification du solde équipe                   */
-/*==============================================================*/
-CREATE OR REPLACE TRIGGER T_APPAREIL
-BEFORE INSERT ON APPAREIL
-FOR EACH ROW
-DECLARE
-   LAST_RANG INTEGER;
-BEGIN
-  SELECT MAX(POSITION_APPAREIL) INTO  LAST_RANG FROM APPAREIL;
-  IF  LAST_RANG IS NULL THEN
-     LAST_RANG := 0;
-  END IF;
-  :NEW.POSITION_APPAREIL :=  LAST_RANG + 1;
-  :NEW.ETAT_APPAREIL := 'disponible';
-END;
-/
-
-CREATE OR REPLACE TRIGGER T_LISTE_ATTENTE
-AFTER INSERT ON EXPERIENCE
-FOR EACH ROW
-DECLARE
-  v_nb_exp_attente  NUMBER;
-BEGIN
-  -- Récupérer le nombre actuel d'expériences en attente pour la liste concernée
-  SELECT NB_EXP_ATTENTE
-  INTO v_nb_exp_attente
-  FROM LISTEATTENTE
-  WHERE ID_LISTE = :NEW.ID_LISTE;
-
-  -- Mettre à jour le nombre d'expériences en attente pour la liste concernée
-  UPDATE LISTEATTENTE
-  SET NB_EXP_ATTENTE = v_nb_exp_attente + 1
-  WHERE ID_LISTE = :NEW.ID_LISTE;
-END;
-/
-
-
-
-
-/*==============================================================*/
-/* Trigger modification du solde équipe                   */
-/*==============================================================*/
-CREATE OR REPLACE TRIGGER UPDATE_SOLDE_EQUIPE
-AFTER INSERT ON FACTURE
-FOR EACH ROW
-BEGIN
-  UPDATE EQUIPE
-     SET SOLDE_EQUIPE = SOLDE_EQUIPE + :NEW.MONTANT_FACTURE
-   WHERE ID_EQUIPE = :NEW.ID_EQUIPE;
-END;
-/
-
-/*==============================================================*/
-/* Trigger expérience echouée ajt liste renouveler ok + coefficient de surcoût    à faire               */
-/*==============================================================*/
-/*CREATE OR REPLACE TRIGGER Contrainte_statut_experience
-AFTER INSERT OR UPDATE ON EXPERIENCE
-FOR EACH ROW
-DECLARE
-    v_new_etat_experience EXPERIENCE.ETAT_EXPERIENCE%TYPE;
-BEGIN
-    -- Vérifier si la plaque ou le groupe a été refusé
-    IF (:NEW.VALEUR_BIAIS_A1 IS NULL OR :NEW.VALEUR_BIAIS_A2 IS NULL OR :NEW.VALEUR_BIAIS_A3 IS NULL) THEN
-        v_new_etat_experience := 'Echouée';
-        -- Ajouter l'expérience à la liste des expériences à renouveler
-        INSERT INTO LISTEATTENTE (ID_LISTE, NB_EXP_ATTENTE, EXPERIENCE, NB_EXP_DOUBLE)
-        VALUES (:NEW.ID_LISTE, 1, :NEW.ID_EXPERIENCE, 0);
-    ELSIF (:NEW.VALEUR_BIAIS_A1 > :NEW.VALEUR_BIAIS_A2 OR :NEW.VALEUR_BIAIS_A2 > :NEW.VALEUR_BIAIS_A3) THEN
-        v_new_etat_experience := 'Echouée';
-        -- Ajouter l'expérience à la liste des expériences à renouveler
-        INSERT INTO LISTEATTENTE (ID_LISTE, NB_EXP_ATTENTE, EXPERIENCE, NB_EXP_DOUBLE)
-        VALUES (:NEW.ID_LISTE, 1, :NEW.ID_EXPERIENCE, 0);
-    ELSE
-        v_new_etat_experience := 'Réussie';
-    END IF;
-
-    -- Mettre à jour l'état de l'expérience
-    UPDATE EXPERIENCE SET ETAT_EXPERIENCE = v_new_etat_experience WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
-
-    -- Recalculer le coefficient de surcoût si nécessaire
-    --IF (v_new_etat_experience = 'Echouée') THEN
-        -- Code pour recalculer le coefficient de surcoût en fonction des données de la table FACTURE
-        -- Par exemple :
-        -- v_coefficient_surcout := v_coefficient_surcout * 1.1; -- à modifier
-
-        -- Mettre à jour le coefficient de surcoût dans la table FACTURE
-        -- UPDATE FACTURE SET COEFFICIENT_SURCOUT = v_coefficient_surcout WHERE ID_EQUIPE = :NEW.ID_EQUIPE;
-    --END IF;
-
-END;
-/
-*/
-
-
-
--- Suppression des groupes de slots et des slots associés à une plaque lorsque celle-ci est supprimée
-CREATE OR REPLACE TRIGGER T_suppression_plaque
-BEFORE DELETE ON PLAQUE
-FOR EACH ROW
-BEGIN
-    DELETE FROM GROUPESLOT WHERE ID_PLAQUE = :OLD.ID_PLAQUE;
-    DELETE FROM SLOT WHERE ID_PLAQUE = :OLD.ID_PLAQUE;
-END;
-
--- Mise à jour ou suppression des expériences associées à un appareil lorsque celui-ci est supprimé
-CREATE OR REPLACE TRIGGER T_suppression_appareil
-BEFORE DELETE ON APPAREIL
-FOR EACH ROW
-BEGIN
-    UPDATE EXPERIENCE SET ID_APPAREIL = NULL WHERE ID_APPAREIL = :OLD.ID_APPAREIL;
-    -- Si vous souhaitez supprimer les expériences associées à l'appareil au lieu de les mettre à jour, utilisez la ligne suivante :
-    -- DELETE FROM EXPERIENCE WHERE ID_APPAREIL = :OLD.ID_APPAREIL;
-END;
-
--- Trigger pourrespecter les règle imposé sur les valeurs entre les biais
-CREATE OR REPLACE TRIGGER Acceptation_biais
-BEFORE INSERT OR UPDATE OF VALEUR_BIAIS_A1, VALEUR_BIAIS_A2, VALEUR_BIAIS_A3, ECART_TYPE_EXPERIENCE ON Experience
-FOR EACH ROW
-DECLARE
-  v_resultat_experience VARCHAR2(25);
-BEGIN
-  IF :NEW.ECART_TYPE_EXPERIENCE < :NEW.VALEUR_BIAIS_A1 THEN
-    v_resultat_experience := 'Accepté';
-  ELSIF :NEW.VALEUR_BIAIS_A1 <= :NEW.ECART_TYPE_EXPERIENCE AND :NEW.ECART_TYPE_EXPERIENCE <= :NEW.VALEUR_BIAIS_A2 THEN
-    v_resultat_experience := 'Refusé';
-  ELSIF :NEW.VALEUR_BIAIS_A2 < :NEW.ECART_TYPE_EXPERIENCE THEN
-    v_resultat_experience := 'Plaque refusée';
-  END IF;
-
-  :NEW.ETAT_EXPERIENCE := v_resultat_experience;
-END;
-/
-
-
-
-
-
-
-
-/*==============================================================*/
--- Trigger freq observation
-/*==============================================================*/
-CREATE OR REPLACE FUNCTION Calcul_frequence_observation(
-    p_id_experience IN NUMBER
-) RETURN NUMBER IS
-    d NUMBER;
-    f NUMBER;
-    result NUMBER;
-BEGIN
-    -- Retrieve the values of d and f from the Experience table
-    SELECT DUREE_EXPERIENCE, FREQUENCE_EXPERIENCE
-    INTO d, f
-    FROM Experience
-    WHERE ID_EXPERIENCE = p_id_experience;
-
-    -- Calculate the result as d/f rounded to the nearest integer
-    result := ROUND(d / f);
-
-    -- Check if the result is an integer
-    IF result != TRUNC(result) THEN
-        RAISE_APPLICATION_ERROR(-20001, 'Invalid frequency value: ' || result);
-    END IF;
-
-    -- Return the result
-    RETURN result;
-END;
-/
-
-
-
-
-
-/*==============================================================*/
 --Vérifie si le produit du nombre de renouvellements d'expérience par la valeur du biais A3  est inférieur à la valeur du biais A3. 
---En fonction du résultat, il met à jour l'état de l'expérience  en 'Acceptée' ou 'Refusée'.
-/*==============================================================*/
+--En fonction du résultat, il met à jour l'état de l'expérience  en 'Acceptée' ou 'Refusée'.   
+--ok
 CREATE OR REPLACE TRIGGER Contrainte_nb_releves_photo
 BEFORE INSERT OR UPDATE ON Experience
 FOR EACH ROW
@@ -825,18 +657,166 @@ BEGIN
 END;
 /
 
+-- Trigger pourrespecter les règle imposé sur les valeurs entre les biais 
+--ok
+CREATE OR REPLACE TRIGGER Acceptation_biais
+BEFORE INSERT OR UPDATE OF VALEUR_BIAIS_A1, VALEUR_BIAIS_A2, VALEUR_BIAIS_A3, ECART_TYPE_EXPERIENCE ON Experience
+FOR EACH ROW
+DECLARE
+  v_resultat_experience VARCHAR2(25);
+BEGIN
+  IF :NEW.ECART_TYPE_EXPERIENCE < :NEW.VALEUR_BIAIS_A1 THEN
+    v_resultat_experience := 'Accepté';
+  ELSIF :NEW.VALEUR_BIAIS_A1 <= :NEW.ECART_TYPE_EXPERIENCE AND :NEW.ECART_TYPE_EXPERIENCE <= :NEW.VALEUR_BIAIS_A2 THEN
+    v_resultat_experience := 'Refusé';
+  ELSIF :NEW.VALEUR_BIAIS_A2 < :NEW.ECART_TYPE_EXPERIENCE THEN
+    v_resultat_experience := 'Plaque refusée';
+  END IF;
+
+  :NEW.ETAT_EXPERIENCE := v_resultat_experience;
+END;
+/
+
+-- Trigger freq observation  ok
+CREATE OR REPLACE PROCEDURE Calcul_frequence_observation(
+    p_id_experience IN NUMBER,
+    p_result OUT NUMBER
+) AS
+    d NUMBER;
+    f NUMBER;
+BEGIN
+    -- Retrieve the values of d and f from the Experience table
+    SELECT DUREE_EXPERIENCE, FREQUENCE_EXPERIENCE
+    INTO d, f
+    FROM Experience
+    WHERE ID_EXPERIENCE = p_id_experience;
+
+    -- Calculate the result as d/f rounded to the nearest integer
+    p_result := ROUND(d / f);
+
+    -- Check if the result is an integer
+    IF p_result != TRUNC(p_result) THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Valeur de fréquence invalide: ' || p_result);
+    END IF;
+END;
+/
+
+-- Trigger freq observation  ok
+CREATE OR REPLACE FUNCTION Calcul_frequence_observation(
+    p_id_experience IN NUMBER
+) RETURN NUMBER IS
+    d NUMBER;
+    f NUMBER;
+    result NUMBER;
+BEGIN
+    -- Retrieve the values of d and f from the Experience table
+    SELECT DUREE_EXPERIENCE, FREQUENCE_EXPERIENCE
+    INTO d, f
+    FROM Experience
+    WHERE ID_EXPERIENCE = p_id_experience;
+
+    -- Calculate the result as d/f rounded to the nearest integer
+    result := ROUND(d / f);
+
+    -- Check if the result is an integer
+    IF result != TRUNC(result) THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Invalid frequency value: ' || result);
+    END IF;
+
+    -- Return the result
+    RETURN result;
+END;
+/
+
+CREATE OR REPLACE TRIGGER refus_plaque_trigger
+AFTER INSERT ON T_refus_plaque
+FOR EACH ROW
+DECLARE
+    v_experience_id NUMBER;
+BEGIN
+    -- Récupérer l'identifiant de l'expérience associée au refus
+    v_experience_id := :NEW.experience_id;
+
+    -- Simuler un refus de plaque ou de groupe en mettant à jour le statut de l'expérience
+    UPDATE EXPERIENCE
+    SET statut = 'Echoué'
+    WHERE ID_EXPERIENCE = v_experience_id;
+
+    -- Ajouter l'expérience à renouveler
+    INSERT INTO LISTEATTENTE (ID_EXPERIENCE, NB_EXP_ATTENTE)
+    VALUES (v_experience_id, 1);
+
+    -- Commit pour valider les changements
+    COMMIT;
+EXCEPTION
+    -- Gérer les exceptions
+    WHEN OTHERS THEN
+        -- Afficher l'erreur
+        DBMS_OUTPUT.PUT_LINE('Erreur : ' || SQLERRM);
+        -- Rollback pour annuler les changements en cas d'erreur
+        ROLLBACK;
+END;
+/
+
+-- A REPRENDRE SI TEMPS OK 
+
+/*==============================================================*/
+/* Trigger expérience echouée ajt liste renouveler ok + coefficient de surcoût    à faire               */
+/*==============================================================*/
+/*CREATE OR REPLACE TRIGGER Contrainte_statut_experience
+AFTER INSERT OR UPDATE ON EXPERIENCE
+FOR EACH ROW
+DECLARE
+    v_new_etat_experience EXPERIENCE.ETAT_EXPERIENCE%TYPE;
+BEGIN
+    -- Vérifier si la plaque ou le groupe a été refusé
+    IF (:NEW.VALEUR_BIAIS_A1 IS NULL OR :NEW.VALEUR_BIAIS_A2 IS NULL OR :NEW.VALEUR_BIAIS_A3 IS NULL) THEN
+        v_new_etat_experience := 'Echouée';
+        -- Ajouter l'expérience à la liste des expériences à renouveler
+        INSERT INTO LISTEATTENTE (ID_LISTE, NB_EXP_ATTENTE, EXPERIENCE, NB_EXP_DOUBLE)
+        VALUES (:NEW.ID_LISTE, 1, :NEW.ID_EXPERIENCE, 0);
+    ELSIF (:NEW.VALEUR_BIAIS_A1 > :NEW.VALEUR_BIAIS_A2 OR :NEW.VALEUR_BIAIS_A2 > :NEW.VALEUR_BIAIS_A3) THEN
+        v_new_etat_experience := 'Echouée';
+        -- Ajouter l'expérience à la liste des expériences à renouveler
+        INSERT INTO LISTEATTENTE (ID_LISTE, NB_EXP_ATTENTE, EXPERIENCE, NB_EXP_DOUBLE)
+        VALUES (:NEW.ID_LISTE, 1, :NEW.ID_EXPERIENCE, 0);
+    ELSE
+        v_new_etat_experience := 'Réussie';
+    END IF;
+
+    -- Mettre à jour l'état de l'expérience
+    UPDATE EXPERIENCE SET ETAT_EXPERIENCE = v_new_etat_experience WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
+
+    -- Recalculer le coefficient de surcoût si nécessaire
+    --IF (v_new_etat_experience = 'Echouée') THEN
+        -- Code pour recalculer le coefficient de surcoût en fonction des données de la table FACTURE
+        -- Par exemple :
+        -- v_coefficient_surcout := v_coefficient_surcout * 1.1; -- à modifier
+
+        -- Mettre à jour le coefficient de surcoût dans la table FACTURE
+        -- UPDATE FACTURE SET COEFFICIENT_SURCOUT = v_coefficient_surcout WHERE ID_EQUIPE = :NEW.ID_EQUIPE;
+    --END IF;
+
+END;
+/
+*/
 
 
+/*
+-- Suppression des groupes de slots et des slots associés à une plaque lorsque celle-ci est supprimée
+CREATE OR REPLACE TRIGGER T_suppression_plaque
+BEFORE DELETE ON PLAQUE
+FOR EACH ROW
+BEGIN
+    DELETE FROM GROUPESLOT WHERE ID_PLAQUE = :OLD.ID_PLAQUE;
+    DELETE FROM SLOT WHERE ID_PLAQUE = :OLD.ID_PLAQUE;
+END;
+/
 
--- test du trigge au dessus : 
-SELECT STATUS FROM USER_OBJECTS WHERE OBJECT_NAME = 'CALCUL_FREQUENCE_OBSERVATION';
 
-UPDATE Experience SET DUREE_EXPERIENCE = 48 WHERE ID_EXPERIENCE = 1;
-
-
-
---  A FINIR MAIS PB SURCOUT  trigger met à jour l'état de l'expérience et recalcule le coefficient de surcoût lorsqu'une plaque ou un groupe est refusé
-/*CREATE OR REPLACE TRIGGER Contrainte_statut_experience_plaque
+/*
+--  trigger met à jour l'état de l'expérience et recalcule le coefficient de surcoût lorsqu'une plaque ou un groupe est refusé
+CREATE OR REPLACE TRIGGER Contrainte_statut_experience_plaque
 AFTER UPDATE OF etat_plaque ON plaque
 FOR EACH ROW
 DECLARE
@@ -846,21 +826,21 @@ DECLARE
 BEGIN
   -- Vérifier si la mise à jour concerne un refus
   IF :NEW.etat_plaque = 'REFUS' THEN
-    -- Récupérer l'ID de l'expérience concernée et le nombre total de slots
-    SELECT g.id_experience, COUNT(*)
-    INTO v_experience_id, v_total_count
-    FROM groupeslot g
+    -- Récupérer l'ID de l'expérience concernée
+    SELECT e.id_experience INTO v_experience_id
+    FROM experience e
+    JOIN groupeslot g ON e.id_experience = g.id_experience
     JOIN slot s ON g.id_groupe = s.id_groupe
-    WHERE s.id_plaque = :NEW.id_plaque
-    GROUP BY g.id_experience;
+    JOIN plaque p ON s.id_plaque = p.id_plaque -- Ajouter cette ligne
+    WHERE p.id_plaque = :NEW.id_plaque;
 
-    -- Compter le nombre de refus
-    SELECT COUNT(*)
-    INTO v_refus_count
+    -- Compter le nombre total de plaques et groupes, ainsi que le nombre de refus
+    SELECT COUNT(*), SUM(CASE WHEN p.etat_plaque = 'REFUS' OR g.validite_groupe = 0 THEN 1 ELSE 0 END)
+    INTO v_total_count, v_refus_count
     FROM groupeslot g
     JOIN slot s ON g.id_groupe = s.id_groupe
-    WHERE g.id_experience = v_experience_id
-    AND (s.id_plaque = :NEW.id_plaque OR g.validite_groupe = 0);
+    JOIN plaque p ON s.id_plaque = p.id_plaque
+    WHERE g.id_experience = v_experience_id;
 
     -- Mettre à jour le statut de l'expérience et recalculer le coefficient de surcoût
     UPDATE experience
@@ -869,6 +849,16 @@ BEGIN
     WHERE id_experience = v_experience_id;
   END IF;
 END;
-/*/
+/
+
+*/
+
+
+
+
+-- test du trigge au dessus : 
+SELECT STATUS FROM USER_OBJECTS WHERE OBJECT_NAME = 'CALCUL_FREQUENCE_OBSERVATION';
+
+UPDATE Experience SET DUREE_EXPERIENCE = 48 WHERE ID_EXPERIENCE = 1;
 
 

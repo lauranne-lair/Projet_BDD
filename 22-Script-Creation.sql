@@ -485,6 +485,8 @@ alter table TECHNICIEN
    add constraint FK_TECHNICI_APPARTENI_EQUIPE foreign key (ID_EQUIPE)
       references EQUIPE (ID_EQUIPE);
           
+ALTER TABLE EXPERIENCE
+    add constraint check_priorite_experience CHECK (PRIORITE_EXPERIENCE BETWEEN 1 AND 5);
 
 /*==============================================================*/
 /* Séquence pour l'autoincrémentation                           */
