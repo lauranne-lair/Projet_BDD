@@ -812,11 +812,12 @@ BEGIN
     DELETE FROM SLOT WHERE ID_PLAQUE = :OLD.ID_PLAQUE;
 END;
 /
+*/
 
 
-/*
+
 --  trigger met à jour l'état de l'expérience et recalcule le coefficient de surcoût lorsqu'une plaque ou un groupe est refusé
-CREATE OR REPLACE TRIGGER Contrainte_statut_experience_plaque
+/*CREATE OR REPLACE TRIGGER Contrainte_statut_experience_plaque
 AFTER UPDATE OF etat_plaque ON plaque
 FOR EACH ROW
 DECLARE
@@ -852,6 +853,7 @@ END;
 /
 
 */
+
 
 
 
