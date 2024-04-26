@@ -660,7 +660,7 @@ BEGIN
 END;
 /
 
-CREATE OR REPLACE TRIGGER refus_plaque_trigger
+/*CREATE OR REPLACE TRIGGER refus_plaque_trigger
 AFTER INSERT ON T_refus_plaque
 FOR EACH ROW
 DECLARE
@@ -687,7 +687,7 @@ EXCEPTION
         -- Rollback pour annuler les changements en cas d'erreur
         ROLLBACK;
 END;
-/
+/ */
 
 
 /*----------------------------------------------------------------------------*\

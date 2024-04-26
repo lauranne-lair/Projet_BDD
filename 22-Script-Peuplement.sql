@@ -1,3 +1,16 @@
+DROP PROCEDURE peuplement_fournisseur;
+DROP PROCEDURE P_stock;
+DROP PROCEDURE peupler_table_lot;
+DROP PROCEDURE peupler_table_plaques;
+DROP PROCEDURE PEUPLE_CHERCHEUR;
+DROP PROCEDURE INSERER_EQUIPE_ALEATOIRE;
+DROP PROCEDURE peuple_technicien;
+DROP PROCEDURE PEUPLE_FACTURE;
+DROP PROCEDURE P_ListeAttente;
+DROP PROCEDURE PEUPLE_EXPERIENCE;
+DROP PROCEDURE PEUPLEMENT_APPAREIL;
+
+
 
 /*==============================================================*/
 /* Peuplement des tables                                        */
@@ -53,7 +66,6 @@ END peupler_table_lot;
 /
 exec peupler_table_lot;
 
-Exec P_Lot;
 --------------------------------------------------------------------------------
 
 --PLAQUE
@@ -97,28 +109,19 @@ CREATE OR REPLACE PROCEDURE PEUPLE_CHERCHEUR(nb_lignes IN NUMBER) AS
 BEGIN
     FOR i IN 1..nb_lignes LOOP
         SELECT ID_EQUIPE INTO id_equipe FROM (SELECT ID_EQUIPE FROM EQUIPE ORDER BY DBMS_RANDOM.VALUE) WHERE ROWNUM = 1;
-        nom_c := DBMS_RANDOM.STRING('A', 10);
-        prenom_c := DBMS_RANDOM.STRING('A', 10);
         
-        IF ASCII(SUBSTR(nom_c, 1, 1)) BETWEEN 97 AND 122 THEN
-            nom_c := INITCAP(nom_c);
-        END IF;
-    
-        IF ASCII(SUBSTR(prenom_c, 1, 1)) BETWEEN 97 AND 122 THEN
-            prenom_c := INITCAP(prenom_c);
-        END IF;
-    
+        nom_c := 'Chercheur' || i; -- Utilisation d'un nom généré de manière incrémentielle
+        prenom_c := 'Prénom' || i; -- Utilisation d'un prénom généré de manière incrémentielle
+
         INSERT INTO CHERCHEUR(ID_CHERCHEUR, ID_EQUIPE, NOM_CHERCHEUR, PRENOM_CHERCHEUR)
         VALUES(SEQ_ID_CHERCHEUR.NEXTVAL, id_equipe, nom_c, prenom_c);
     END LOOP;
-    COMMIT;
+    COMMIT; 
 EXCEPTION
     WHEN OTHERS THEN
-        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
-        ROLLBACK;
+        RAISE; 
 END;
 /
-
 EXEC PEUPLE_CHERCHEUR(10);
 
 --EQUIPE
@@ -194,9 +197,6 @@ END;
 /
 EXEC PEUPLE_FACTURE(10);
 
---ACHETER
---INSERT INTO ACHETER (ID_FOURNISSEUR, ID_LOT) VALUES (1, 1);
---INSERT INTO ACHETER (ID_FOURNISSEUR, ID_LOT) VALUES (2, 2);
 
 --LISTE ATTENTE
 CREATE OR REPLACE PROCEDURE P_ListeAttente AS
@@ -273,7 +273,8 @@ BEGIN
                              WHEN 1 THEN 'Colorimétrique'
                              ELSE 'Opacimétrique'
                           END;
-
+                          
+    
         -- Générer un état d'expérience aléatoire
         etat_experience := CASE TRUNC(DBMS_RANDOM.VALUE(1, 5))
                     WHEN 1 THEN 'en cours'
@@ -335,12 +336,9 @@ BEGIN
 COMMIT;
 END PEUPLE_EXPERIENCE;
 /
-
-
 EXEC PEUPLE_EXPERIENCE(10);
 
 --APPAREIL
-TRUNCATE TABLE APPAREIL;
 CREATE OR REPLACE PROCEDURE PEUPLEMENT_APPAREIL AS
   v_next_id_appareil NUMBER;
 BEGIN
@@ -358,47 +356,6 @@ END PEUPLEMENT_APPAREIL;
 EXEC PEUPLEMENT_APPAREIL;
 
 
-
-/*TRUNCATE TABLE LOT;
-TRUNCATE TABLE STOCK;
-TRUNCATE TABLE PLAQUE;
-begin
-P_stock();
-P_Lot();
-peupler_table_plaques;
-end; 
-/
-
-
-INSERT INTO stock (id_stock, quantite_p384, quantite_p96, vol_dernier_tri_p384, vol_dernier_tri_p96)VALUES (1,0,0,0,0);
-    
-ALTER TRIGGER T_arrivee_lot COMPILE;
-
-INSERT INTO lot (id_stock, date_livraison_lot, nb_plaque, type_plaque_lot)
-        VALUES (1, SYSDATE, 80, 96); 
-        
-*/
-
-
-
-
-
--- test insertion acceptation biais 
---INSERT INTO ListeAttente (ID_LISTE, NB_EXP_ATTENTE, EXPERIENCE, NB_EXP_DOUBLE)
---VALUES (2, 0, null, 0);
-
---exp ok :
---INSERT INTO Experience (ID_EXPERIENCE, ID_LISTE, ID_TECHNICIEN, ID_CHERCHEUR, TYPE_PLAQUE, TYPE_EXPERIENCE, ETAT_EXPERIENCE, NB_GROUPE_SLOT_EXPERIENCE, NB_SLOTS_PAR_GROUPE_EXPERIENCE, VALEUR_BIAIS_A1, VALEUR_BIAIS_A2, VALEUR_BIAIS_A3, ECART_TYPE_EXPERIENCE)
---VALUES (1, 1, 1, 1, 'P96', 'Test', 'En cours', 1, 1, 0.5, 1.5, 0.4, 0.4);
-
-
---exp pas ok
---INSERT INTO Experience (ID_EXPERIENCE, ID_LISTE, ID_TECHNICIEN, ID_CHERCHEUR, TYPE_PLAQUE, TYPE_EXPERIENCE, ETAT_EXPERIENCE, NB_GROUPE_SLOT_EXPERIENCE, NB_SLOTS_PAR_GROUPE_EXPERIENCE, VALEUR_BIAIS_A1, VALEUR_BIAIS_A2, VALEUR_BIAIS_A3, ECART_TYPE_EXPERIENCE)
---VALUES (2, 1, 1, 1, 'P96', 'Test', 'En cours', 1, 1, 0.5, 1.5, 0.8, 1.2);
-
-
-
---SELECT ID_EXPERIENCE, ETAT_EXPERIENCE FROM Experience;
 
 
 Commit;
