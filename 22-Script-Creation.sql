@@ -484,6 +484,18 @@ alter table TECHNICIEN
           
 ALTER TABLE EXPERIENCE
     add constraint check_priorite_experience CHECK (PRIORITE_EXPERIENCE BETWEEN 1 AND 5);
+    
+
+--- ajout id_appreil
+ALTER TABLE experience
+ADD ID_APPAREIL NUMBER(38,0);
+
+
+ALTER TABLE experience
+ADD CONSTRAINT fk_experience_appareil
+FOREIGN KEY (ID_APPAREIL)
+REFERENCES appareil(ID_APPAREIL);
+
 
 /*==============================================================*/
 /* Séquence pour l'autoincrémentation                           */
