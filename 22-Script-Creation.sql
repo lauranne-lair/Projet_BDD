@@ -260,11 +260,11 @@ create table GROUPESLOT
    ID_GROUPE            INTEGER              not null,
    ID_EXPERIENCE        INTEGER              not null,
    ID_PLAQUE            INTEGER              not null,
-   NB_SLOTS NUMBER,
+   NB_SLOTS             NUMBER,
    MOYENNE_GROUPE       INTEGER,
    ECART_TYPE_GROUPE    INTEGER,
    VALIDITE_GROUPE      INTEGER,
-   RAPPORT_T NUMBER(10, 2),
+   RAPPORT_T            NUMBER(10, 2),
    constraint PK_GROUPESLOT primary key (ID_GROUPE)
 );
 
