@@ -33,6 +33,7 @@ exec peuplement_fournisseur;
 
 --STOCK ------------------------------------------------------------------------
 -- Cette procédure de peuplement crée 5 stocks différents vides
+
 CREATE OR REPLACE PROCEDURE P_stock deterministic AS
 BEGIN
     INSERT INTO stock (id_stock, quantite_p384, quantite_p96, vol_dernier_tri_p384, vol_dernier_tri_p96) VALUES (seq_id_stock.NEXTVAL, 0, 0, 0, 0);
@@ -114,29 +115,40 @@ exec peupler_table_plaques;
 
 --CHERCHEUR
 TRUNCATE TABLE CHERCHEUR;
-CREATE OR REPLACE PROCEDURE PEUPLE_CHERCHEUR(nb_lignes IN NUMBER) AS
-    id_equipe EQUIPE.ID_EQUIPE%TYPE;
-    nom_c VARCHAR2(25);
-    prenom_c VARCHAR2(25);
-BEGIN
-    FOR i IN 1..nb_lignes LOOP
-        SELECT ID_EQUIPE INTO id_equipe FROM (SELECT ID_EQUIPE FROM EQUIPE ORDER BY DBMS_RANDOM.VALUE) WHERE ROWNUM = 1;
-        
-        nom_c := 'Chercheur' || i; -- Utilisation d'un nom généré de manière incrémentielle
-        prenom_c := 'Prénom' || i; -- Utilisation d'un prénom généré de manière incrémentielle
+--CREATE OR REPLACE PROCEDURE PEUPLE_CHERCHEUR(nb_lignes IN NUMBER) AS
+--    id_equipe EQUIPE.ID_EQUIPE%TYPE;
+--    nom_c VARCHAR2(25);
+--    prenom_c VARCHAR2(25);
+--BEGIN
+--    FOR i IN 1..nb_lignes LOOP
+--        SELECT ID_EQUIPE INTO id_equipe FROM (SELECT ID_EQUIPE FROM EQUIPE ORDER BY DBMS_RANDOM.VALUE) WHERE ROWNUM = 1;
+--        
+--        nom_c := 'Chercheur' || i; -- Utilisation d'un nom généré de manière incrémentielle
+--        prenom_c := 'Prénom' || i; -- Utilisation d'un prénom généré de manière incrémentielle
+--
+--        INSERT INTO CHERCHEUR(ID_CHERCHEUR, ID_EQUIPE, NOM_CHERCHEUR, PRENOM_CHERCHEUR)
+--        VALUES(SEQ_ID_CHERCHEUR.NEXTVAL, id_equipe, nom_c, prenom_c);
+--    END LOOP;
+--    COMMIT; 
+--EXCEPTION
+--    WHEN OTHERS THEN
+--        RAISE; 
+--END;
+--/
+--EXEC PEUPLE_CHERCHEUR(10);
+CREATE OR REPLACE PROCEDURE PEUPLE_CHERCHEUR AS 
+BEGIN 
+    INSERT INTO CHERCHEUR (ID_EQUIPE, NOM_CHERCHEUR, PRENOM_CHERCHEUR)
+    VALUES (1 , 'Michel', 'Christophe'); 
+END ; 
+/ 
+EXEC PEUPLE_CHERCHEUR; 
 
-        INSERT INTO CHERCHEUR(ID_CHERCHEUR, ID_EQUIPE, NOM_CHERCHEUR, PRENOM_CHERCHEUR)
-        VALUES(SEQ_ID_CHERCHEUR.NEXTVAL, id_equipe, nom_c, prenom_c);
-    END LOOP;
-    COMMIT; 
-EXCEPTION
-    WHEN OTHERS THEN
-        RAISE; 
-END;
-/
-EXEC PEUPLE_CHERCHEUR(10);
+
+
 
 --EQUIPE
+ 
 CREATE OR REPLACE PROCEDURE INSERER_EQUIPE_ALEATOIRE (
   p_nb_equipes IN NUMBER
 ) IS
@@ -166,34 +178,42 @@ END INSERER_EQUIPE_ALEATOIRE;
 EXEC INSERER_EQUIPE_ALEATOIRE(10);
 
 --TECHNICIEN
+ALTER SEQUENCE  seq_id_technicien MINVALUE 0;
 TRUNCATE TABLE TECHNICIEN;
-CREATE OR REPLACE PROCEDURE peuple_technicien(nb_lignes IN NUMBER) DETERMINISTIC AS
-    id_technicien TECHNICIEN.ID_TECHNICIEN%TYPE;
-    id_equipe TECHNICIEN.ID_EQUIPE%TYPE;
-    nom_technicien TECHNICIEN.NOM_TECHNICIEN%TYPE;
-    prenom_technicien TECHNICIEN.PRENOM_TECHNICIEN%TYPE;
-BEGIN
-    FOR i IN 1..nb_lignes LOOP
-        SELECT seq_id_technicien.NEXTVAL INTO id_technicien FROM DUAL;
+--CREATE OR REPLACE PROCEDURE peuple_technicien(nb_lignes IN NUMBER) DETERMINISTIC AS
+--    id_technicien TECHNICIEN.ID_TECHNICIEN%TYPE;
+--    id_equipe TECHNICIEN.ID_EQUIPE%TYPE;
+--    nom_technicien TECHNICIEN.NOM_TECHNICIEN%TYPE;
+--    prenom_technicien TECHNICIEN.PRENOM_TECHNICIEN%TYPE;
+--BEGIN
+--    FOR i IN 1..nb_lignes LOOP
+--        SELECT seq_id_technicien.NEXTVAL INTO id_technicien FROM DUAL;
+--
+--        SELECT ID_EQUIPE INTO id_equipe
+--        FROM EQUIPE
+--        WHERE ROWNUM = 1
+--        ORDER BY DBMS_RANDOM.VALUE;
+--
+--        nom_technicien := 'Technicien' || i;
+--        prenom_technicien := 'Prénom' || i;
+--
+--        -- Insertion des valeurs générées dans la table TECHNICIEN
+--        INSERT INTO TECHNICIEN (ID_TECHNICIEN, ID_EQUIPE, NOM_TECHNICIEN, PRENOM_TECHNICIEN)
+--        VALUES (id_technicien, id_equipe, nom_technicien, prenom_technicien);
+--    END LOOP;
+--    COMMIT;
+--END;
+--/
+--exec peuple_technicien(15);
 
-        SELECT ID_EQUIPE INTO id_equipe
-        FROM EQUIPE
-        WHERE ROWNUM = 1
-        ORDER BY DBMS_RANDOM.VALUE;
+TRUNCATE TABLE TECHNICIEN; 
+INSERT INTO TECHNICIEN (ID_EQUIPE, NOM_TECHNICIEN, PRENOM_TECHNICIEN) VALUES (1, 'Dupond', 'Jean');
 
-        nom_technicien := 'Technicien' || i;
-        prenom_technicien := 'Prénom' || i;
-
-        -- Insertion des valeurs générées dans la table TECHNICIEN
-        INSERT INTO TECHNICIEN (ID_TECHNICIEN, ID_EQUIPE, NOM_TECHNICIEN, PRENOM_TECHNICIEN)
-        VALUES (id_technicien, id_equipe, nom_technicien, prenom_technicien);
-    END LOOP;
-    COMMIT;
-END;
-/
-exec peuple_technicien(15);
+-- Appel de la procédure stockée
+  -- Appel de la procédure sans paramètres
 
 
+-- Création de la procédure stockée
 -- FACTURE
 TRUNCATE TABLE FACTURE;
 CREATE OR REPLACE PROCEDURE PEUPLE_FACTURE(nb_lignes IN NUMBER) DETERMINISTIC AS 
@@ -233,122 +253,131 @@ exec P_ListeAttente;
 
 --EXPERIENCE
 TRUNCATE TABLE EXPERIENCE;
-CREATE OR REPLACE PROCEDURE PEUPLE_EXPERIENCE(nb_lignes IN NUMBER) AS
-    id_technicien EXPERIENCE.ID_TECHNICIEN%TYPE;
-    id_chercheur EXPERIENCE.ID_CHERCHEUR%TYPE;
-    id_liste LISTEATTENTE.ID_LISTE%TYPE;
-    id_plaque PLAQUE.ID_PLAQUE%TYPE;
-    type_plaque PLAQUE.TYPE_PLAQUE%TYPE;
-    nb_groupe_slot_experience NUMBER;
-    nb_slots_par_groupe_experience NUMBER;
-    type_experience VARCHAR2(20);
-    etat_experience VARCHAR2(20);
-    duree_experience NUMBER;
-    date_demande_experience DATE;
-    date_transmission_resultat DATE;
-    priorite_experience NUMBER;
-    frequence_experience NUMBER;
-    reprogr_max_experience NUMBER;
-    coeff_prix_prio_experience NUMBER;
-    valeur_biais_a1 NUMBER;
-    valeur_biais_a2 NUMBER;
-    valeur_biais_a3 NUMBER;
-    moyenne_experience NUMBER;
-    ecart_type_experience NUMBER;
-    nb_renouvellement_experience NUMBER;
-    v_nb_exp_doublees NUMBER;
-BEGIN
-    FOR i IN 1..nb_lignes LOOP
-        -- Sélectionner un ID_TECHNICIEN aléatoire
-        SELECT ID_TECHNICIEN INTO id_technicien FROM TECHNICIEN ORDER BY DBMS_RANDOM.VALUE FETCH FIRST 1 ROWS ONLY;
+--CREATE OR REPLACE PROCEDURE PEUPLE_EXPERIENCE(nb_lignes IN NUMBER) AS
+--    id_technicien EXPERIENCE.ID_TECHNICIEN%TYPE;
+--    id_chercheur EXPERIENCE.ID_CHERCHEUR%TYPE;
+--    id_liste LISTEATTENTE.ID_LISTE%TYPE;
+--    id_plaque PLAQUE.ID_PLAQUE%TYPE;
+--    type_plaque PLAQUE.TYPE_PLAQUE%TYPE;
+--    nb_groupe_slot_experience NUMBER;
+--    nb_slots_par_groupe_experience NUMBER;
+--    type_experience VARCHAR2(20);
+--    etat_experience VARCHAR2(20);
+--    duree_experience NUMBER;
+--    date_demande_experience DATE;
+--    date_transmission_resultat DATE;
+--    priorite_experience NUMBER;
+--    frequence_experience NUMBER;
+--    reprogr_max_experience NUMBER;
+--    coeff_prix_prio_experience NUMBER;
+--    valeur_biais_a1 NUMBER;
+--    valeur_biais_a2 NUMBER;
+--    valeur_biais_a3 NUMBER;
+--    moyenne_experience NUMBER;
+--    ecart_type_experience NUMBER;
+--    nb_renouvellement_experience NUMBER;
+--    v_nb_exp_doublees NUMBER;
+--BEGIN
+--    FOR i IN 1..nb_lignes LOOP
+--        -- Sélectionner un ID_TECHNICIEN aléatoire
+--        SELECT ID_TECHNICIEN INTO id_technicien FROM TECHNICIEN ORDER BY DBMS_RANDOM.VALUE FETCH FIRST 1 ROWS ONLY;
+--
+--        -- Sélectionner un ID_CHERCHEUR aléatoire
+--        SELECT ID_CHERCHEUR INTO id_chercheur FROM CHERCHEUR ORDER BY DBMS_RANDOM.VALUE FETCH FIRST 1 ROWS ONLY;
+--
+--        -- Sélectionner un ID_LISTE aléatoire
+--        SELECT ID_LISTE INTO id_liste FROM LISTEATTENTE ORDER BY DBMS_RANDOM.VALUE FETCH FIRST 1 ROWS ONLY;
+--
+--        -- Sélectionner un ID_PLAQUE aléatoire
+--        SELECT ID_PLAQUE INTO id_plaque FROM PLAQUE ORDER BY DBMS_RANDOM.VALUE FETCH FIRST 1 ROWS ONLY;
+--
+--        -- Sélectionner un TYPE_PLAQUE aléatoire
+--        SELECT TYPE_PLAQUE INTO type_plaque FROM PLAQUE ORDER BY DBMS_RANDOM.VALUE FETCH FIRST 1 ROWS ONLY;
+--
+--        -- Générer un nombre aléatoire de groupes de slots pour l'expérience
+--        nb_groupe_slot_experience := TRUNC(DBMS_RANDOM.VALUE(1, 10));
+--
+--        -- Générer un nombre aléatoire de slots par groupe pour l'expérience
+--        nb_slots_par_groupe_experience := TRUNC(DBMS_RANDOM.VALUE(1, 10));
+--
+--        -- Générer un type d'expérience aléatoire
+--        type_experience := CASE TRUNC(DBMS_RANDOM.VALUE(1, 2))
+--                             WHEN 1 THEN 'Colorimétrique'
+--                             ELSE 'Opacimétrique'
+--                          END;
+--                          
+--    
+--        -- Générer un état d'expérience aléatoire
+--        etat_experience := CASE TRUNC(DBMS_RANDOM.VALUE(1, 5))
+--                    WHEN 1 THEN 'en cours'
+--                    WHEN 2 THEN 'à programmer'
+--                    WHEN 3 THEN 'effectuée'
+--                    WHEN 4 THEN 'validée'
+--                    ELSE 'ratée'
+--                    END;
+--
+--        -- Générer une durée d'expérience aléatoire entre 1 et 10 jours
+--        duree_experience := TRUNC(DBMS_RANDOM.VALUE(1, 10));
+--
+--        -- Générer une date de demande d'expérience aléatoire dans les 30 derniers jours
+--        date_demande_experience := TRUNC(SYSDATE) - TRUNC(DBMS_RANDOM.VALUE(1, 30));
+--
+--        -- Générer une date de transmission de résultat aléatoire dans les 10 prochains jours
+--        date_transmission_resultat := TRUNC(SYSDATE) + TRUNC(DBMS_RANDOM.VALUE(1, 10));
+--
+--        -- Générer une priorité d'expérience aléatoire entre 1 et 5
+--        priorite_experience := TRUNC(DBMS_RANDOM.VALUE(1, 5));
+--
+--        -- Générer une fréquence d'expérience aléatoire entre 1 et 10
+--        frequence_experience := TRUNC(DBMS_RANDOM.VALUE(1, 10));
+--
+--        -- Générer un nombre maximal de reprogrammations d'expérience aléatoire entre 0 et 3
+--        reprogr_max_experience := TRUNC(DBMS_RANDOM.VALUE(0, 3));
+--
+--        -- Générer un coefficient de prix prioritaire d'expérience aléatoire entre 1 et 5
+--        IF priorite_experience > 1 THEN
+--            -- Calculer le coefficient de prix prioritaire en fonction des expériences en attente
+--            SELECT COUNT(*) INTO coeff_prix_prio_experience FROM EXPERIENCE WHERE ETAT_EXPERIENCE = 'en attente';
+--            IF coeff_prix_prio_experience = 0 THEN
+--                coeff_prix_prio_experience := 1; -- Affecter une valeur par défaut si aucun enregistrement en attente
+--            ELSE
+--                coeff_prix_prio_experience := (coeff_prix_prio_experience + v_nb_exp_doublees) / coeff_prix_prio_experience;
+--            END IF;
+--        ELSE
+--            coeff_prix_prio_experience := 1;
+--        END IF;
+--
+--        -- Générer des valeurs de biais aléatoires pour l'expérience
+--        valeur_biais_a1 := DBMS_RANDOM.VALUE(0.0, 1.0);
+--        valeur_biais_a2 := DBMS_RANDOM.VALUE(valeur_biais_a1, 1.0);
+--        valeur_biais_a3 := DBMS_RANDOM.VALUE(0.0, 1.0);
+--
+--        -- Générer une moyenne d'expérience aléatoire entre 0 et 100
+--        moyenne_experience := TRUNC(DBMS_RANDOM.VALUE(0, 100));
+--
+--        -- Générer un écart type d'expérience aléatoire entre 0 et 20
+--        ecart_type_experience := TRUNC(DBMS_RANDOM.VALUE(0, 20));
+--
+--        -- Générer un nombre de renouvellements d'expérience aléatoire entre 0 et 3
+--        nb_renouvellement_experience := TRUNC(DBMS_RANDOM.VALUE(0, 3));
+--
+--        -- Insérer des données aléatoires dans la table EXPERIENCE
+--        INSERT INTO EXPERIENCE(ID_EXPERIENCE, ID_LISTE, ID_TECHNICIEN, ID_CHERCHEUR, TYPE_PLAQUE, ID_PLAQUE, TYPE_EXPERIENCE, ETAT_EXPERIENCE, NB_GROUPE_SLOT_EXPERIENCE, NB_SLOTS_PAR_GROUPE_EXPERIENCE, DEB_EXPERIENCE, FIN_EXPERIENCE, DUREE_EXPERIENCE, DATE_DEMANDE_EXPERIENCE, DATE_TRANSMISSION_RESULTAT, PRIORITE_EXPERIENCE, FREQUENCE_EXPERIENCE, REPROGR_MAX_EXPERIENCE, COEFF_PRIX_PRIO_EXPERIENCE, VALEUR_BIAIS_A1, VALEUR_BIAIS_A2, VALEUR_BIAIS_A3, MOYENNE_EXPERIENCE, ECART_TYPE_EXPERIENCE, NB_RENOUVELLEMENT_EXPERIENCE)
+--        VALUES(seq_id_experience.NEXTVAL, id_liste, id_technicien, id_chercheur, type_plaque, id_plaque, type_experience, etat_experience, nb_groupe_slot_experience, nb_slots_par_groupe_experience, SYSDATE, SYSDATE + duree_experience, duree_experience, date_demande_experience, date_transmission_resultat, priorite_experience, frequence_experience, reprogr_max_experience, coeff_prix_prio_experience, valeur_biais_a1, valeur_biais_a2, valeur_biais_a3, moyenne_experience, ecart_type_experience, nb_renouvellement_experience);
+--    END LOOP;
+--COMMIT;
+--END PEUPLE_EXPERIENCE;
+--/
+--EXEC PEUPLE_EXPERIENCE(2);
 
-        -- Sélectionner un ID_CHERCHEUR aléatoire
-        SELECT ID_CHERCHEUR INTO id_chercheur FROM CHERCHEUR ORDER BY DBMS_RANDOM.VALUE FETCH FIRST 1 ROWS ONLY;
-
-        -- Sélectionner un ID_LISTE aléatoire
-        SELECT ID_LISTE INTO id_liste FROM LISTEATTENTE ORDER BY DBMS_RANDOM.VALUE FETCH FIRST 1 ROWS ONLY;
-
-        -- Sélectionner un ID_PLAQUE aléatoire
-        SELECT ID_PLAQUE INTO id_plaque FROM PLAQUE ORDER BY DBMS_RANDOM.VALUE FETCH FIRST 1 ROWS ONLY;
-
-        -- Sélectionner un TYPE_PLAQUE aléatoire
-        SELECT TYPE_PLAQUE INTO type_plaque FROM PLAQUE ORDER BY DBMS_RANDOM.VALUE FETCH FIRST 1 ROWS ONLY;
-
-        -- Générer un nombre aléatoire de groupes de slots pour l'expérience
-        nb_groupe_slot_experience := TRUNC(DBMS_RANDOM.VALUE(1, 10));
-
-        -- Générer un nombre aléatoire de slots par groupe pour l'expérience
-        nb_slots_par_groupe_experience := TRUNC(DBMS_RANDOM.VALUE(1, 10));
-
-        -- Générer un type d'expérience aléatoire
-        type_experience := CASE TRUNC(DBMS_RANDOM.VALUE(1, 2))
-                             WHEN 1 THEN 'Colorimétrique'
-                             ELSE 'Opacimétrique'
-                          END;
-                          
-    
-        -- Générer un état d'expérience aléatoire
-        etat_experience := CASE TRUNC(DBMS_RANDOM.VALUE(1, 5))
-                    WHEN 1 THEN 'en cours'
-                    WHEN 2 THEN 'à programmer'
-                    WHEN 3 THEN 'effectuée'
-                    WHEN 4 THEN 'validée'
-                    ELSE 'ratée'
-                    END;
-
-        -- Générer une durée d'expérience aléatoire entre 1 et 10 jours
-        duree_experience := TRUNC(DBMS_RANDOM.VALUE(1, 10));
-
-        -- Générer une date de demande d'expérience aléatoire dans les 30 derniers jours
-        date_demande_experience := TRUNC(SYSDATE) - TRUNC(DBMS_RANDOM.VALUE(1, 30));
-
-        -- Générer une date de transmission de résultat aléatoire dans les 10 prochains jours
-        date_transmission_resultat := TRUNC(SYSDATE) + TRUNC(DBMS_RANDOM.VALUE(1, 10));
-
-        -- Générer une priorité d'expérience aléatoire entre 1 et 5
-        priorite_experience := TRUNC(DBMS_RANDOM.VALUE(1, 5));
-
-        -- Générer une fréquence d'expérience aléatoire entre 1 et 10
-        frequence_experience := TRUNC(DBMS_RANDOM.VALUE(1, 10));
-
-        -- Générer un nombre maximal de reprogrammations d'expérience aléatoire entre 0 et 3
-        reprogr_max_experience := TRUNC(DBMS_RANDOM.VALUE(0, 3));
-
-        -- Générer un coefficient de prix prioritaire d'expérience aléatoire entre 1 et 5
-        IF priorite_experience > 1 THEN
-            -- Calculer le coefficient de prix prioritaire en fonction des expériences en attente
-            SELECT COUNT(*) INTO coeff_prix_prio_experience FROM EXPERIENCE WHERE ETAT_EXPERIENCE = 'en attente';
-            IF coeff_prix_prio_experience = 0 THEN
-                coeff_prix_prio_experience := 1; -- Affecter une valeur par défaut si aucun enregistrement en attente
-            ELSE
-                coeff_prix_prio_experience := (coeff_prix_prio_experience + v_nb_exp_doublees) / coeff_prix_prio_experience;
-            END IF;
-        ELSE
-            coeff_prix_prio_experience := 1;
-        END IF;
-
-        -- Générer des valeurs de biais aléatoires pour l'expérience
-        valeur_biais_a1 := DBMS_RANDOM.VALUE(0.0, 1.0);
-        valeur_biais_a2 := DBMS_RANDOM.VALUE(valeur_biais_a1, 1.0);
-        valeur_biais_a3 := DBMS_RANDOM.VALUE(0.0, 1.0);
-
-        -- Générer une moyenne d'expérience aléatoire entre 0 et 100
-        moyenne_experience := TRUNC(DBMS_RANDOM.VALUE(0, 100));
-
-        -- Générer un écart type d'expérience aléatoire entre 0 et 20
-        ecart_type_experience := TRUNC(DBMS_RANDOM.VALUE(0, 20));
-
-        -- Générer un nombre de renouvellements d'expérience aléatoire entre 0 et 3
-        nb_renouvellement_experience := TRUNC(DBMS_RANDOM.VALUE(0, 3));
-
-        -- Insérer des données aléatoires dans la table EXPERIENCE
-        INSERT INTO EXPERIENCE(ID_EXPERIENCE, ID_LISTE, ID_TECHNICIEN, ID_CHERCHEUR, TYPE_PLAQUE, ID_PLAQUE, TYPE_EXPERIENCE, ETAT_EXPERIENCE, NB_GROUPE_SLOT_EXPERIENCE, NB_SLOTS_PAR_GROUPE_EXPERIENCE, DEB_EXPERIENCE, FIN_EXPERIENCE, DUREE_EXPERIENCE, DATE_DEMANDE_EXPERIENCE, DATE_TRANSMISSION_RESULTAT, PRIORITE_EXPERIENCE, FREQUENCE_EXPERIENCE, REPROGR_MAX_EXPERIENCE, COEFF_PRIX_PRIO_EXPERIENCE, VALEUR_BIAIS_A1, VALEUR_BIAIS_A2, VALEUR_BIAIS_A3, MOYENNE_EXPERIENCE, ECART_TYPE_EXPERIENCE, NB_RENOUVELLEMENT_EXPERIENCE)
-        VALUES(seq_id_experience.NEXTVAL, id_liste, id_technicien, id_chercheur, type_plaque, id_plaque, type_experience, etat_experience, nb_groupe_slot_experience, nb_slots_par_groupe_experience, SYSDATE, SYSDATE + duree_experience, duree_experience, date_demande_experience, date_transmission_resultat, priorite_experience, frequence_experience, reprogr_max_experience, coeff_prix_prio_experience, valeur_biais_a1, valeur_biais_a2, valeur_biais_a3, moyenne_experience, ecart_type_experience, nb_renouvellement_experience);
-    END LOOP;
-COMMIT;
-END PEUPLE_EXPERIENCE;
+CREATE OR REPLACE PROCEDURE PEUPLE_EXPERIENCE AS
+BEGIN 
+    INSERT INTO EXPERIENCE (ID_LISTE, ID_TECHNICIEN, ID_CHERCHEUR, TYPE_PLAQUE, TYPE_EXPERIENCE, ETAT_EXPERIENCE, NB_GROUPE_SLOT_EXPERIENCE, NB_SLOTS_PAR_GROUPE_EXPERIENCE, DEB_EXPERIENCE, FIN_EXPERIENCE, DUREE_EXPERIENCE)
+    VALUES (1, 1, 1, 96, 'Colorimétrique', 'effectuee', 10,4,SYSDATE, NULL, NULL); 
+END; 
 /
-EXEC PEUPLE_EXPERIENCE(10);
+EXEC PEUPLE_EXPERIENCE ; 
+
 
 --APPAREIL
 CREATE OR REPLACE PROCEDURE PEUPLEMENT_APPAREIL AS

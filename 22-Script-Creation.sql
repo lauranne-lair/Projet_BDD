@@ -200,7 +200,7 @@ create table EXPERIENCE
    CONSTRAINT check_prio CHECK (PRIORITE_EXPERIENCE BETWEEN 1 AND 5)
 );
 
-ALTER TABLE EXPERIENCE ADD CONSTRAINT check_etat_exp CHECK (ETAT_EXPERIENCE IN ('en cours', 'à programmer', 'effectuée', 'validée', 'ratée'));
+ALTER TABLE EXPERIENCE ADD CONSTRAINT check_etat_exp CHECK (ETAT_EXPERIENCE IN ('en cours', 'a programmer', 'effectuee', 'validee', 'ratee'));
     
 /*==============================================================*/
 /* Index : REALISER_FK                                          */
@@ -482,8 +482,7 @@ alter table TECHNICIEN
    add constraint FK_TECHNICI_APPARTENI_EQUIPE foreign key (ID_EQUIPE)
       references EQUIPE (ID_EQUIPE);
           
-ALTER TABLE EXPERIENCE
-    add constraint check_priorite_experience CHECK (PRIORITE_EXPERIENCE BETWEEN 1 AND 5);
+
     
 
 --- ajout id_appreil
@@ -512,6 +511,7 @@ CREATE SEQUENCE seq_id_lot START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE seq_id_plaque START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE seq_id_slot START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE seq_id_technicien START WITH 1 INCREMENT BY 1;
+ALTER SEQUENCE  seq_id_technicien MINVALUE 0;
 CREATE SEQUENCE seq_id_stock START WITH 1 INCREMENT BY 1;
 
 /*==============================================================*/
