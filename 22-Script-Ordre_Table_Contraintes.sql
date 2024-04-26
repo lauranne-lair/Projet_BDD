@@ -696,6 +696,40 @@ EXCEPTION
 END;
 /
 
+
+/*----------------------------------------------------------------------------*\
+/* Trigger qui permet le rachat de lots automatiquement si le stock est inférieure au volume consommé le trimestre d'avant
+/*----------------------------------------------------------------------------*\
+CREATE OR REPLACE TRIGGER T_rachat_stock 
+AFTER UPDATE OR DELETE ON STOCK
+FOR EACH ROW 
+DECLARE 
+    VOL96   integer ;
+    VOL384  integer; 
+
+BEGIN 
+    SELECT VOL_DERNIER_TRI_P96 
+    INTO VOL96
+    FROM STOCK 
+    WHERE ID_STOCK = :NEW.ID_STOCK; 
+    
+    SELECT VOL_DERNIER_TRI_P384 
+    INTO VOL384
+    FROM STOCK 
+    WHERE ID_STOCK = :NEW.ID_STOCK;
+    
+    IF :NEW.QUANTITE_P96 < VOL96 THEN 
+        INSERT INTO lot (id_stock, date_livraison_lot, nb_plaque, type_plaque_lot)
+        VALUES (1, SYSDATE, 80, 96); 
+    END IF;
+    IF :NEW.QUANTITE_P384 < VOL384 THEN 
+        INSERT INTO lot (id_stock, date_livraison_lot, nb_plaque, type_plaque_lot)
+        VALUES (1, SYSDATE, 80, 384); 
+    END IF;
+END;
+/
+
+
 -- A REPRENDRE SI TEMPS OK 
 
 /*==============================================================*/
@@ -791,6 +825,9 @@ END;
 /
 
 */
+
+
+
 
 
 
