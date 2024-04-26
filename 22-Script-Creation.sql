@@ -170,9 +170,9 @@ create table EXPERIENCE
    ID_LISTE             INTEGER,
    ID_TECHNICIEN        INTEGER              not null,
    ID_CHERCHEUR         INTEGER              not null,
-   TYPE_PLAQUE VARCHAR2(10),
-   ID_PLAQUE NUMBER,
-   TYPE_EXPERIENCE      VARCHAR2(14),
+   TYPE_PLAQUE          VARCHAR2(10),
+   ID_PLAQUE            NUMBER,
+   TYPE_EXPERIENCE      VARCHAR2(25),
    ETAT_EXPERIENCE      VARCHAR2(25),
    NB_GROUPE_SLOT_EXPERIENCE INTEGER,
    NB_SLOTS_PAR_GROUPE_EXPERIENCE   INTEGER,
@@ -196,7 +196,8 @@ create table EXPERIENCE
    CONSTRAINT check_biais3 CHECK (VALEUR_BIAIS_A3 BETWEEN 0.0 AND 1.0 ),
    CONSTRAINT check_biais1 CHECK (VALEUR_BIAIS_A1 > 0.0 ),
    CONSTRAINT check_biais2 CHECK (VALEUR_BIAIS_A2 > 0.0 ), 
-   CONSTRAINT check_experience CHECK (TYPE_PLAQUE in ('Colorimétrique','Opacimétrique'))
+   CONSTRAINT check_type_exp CHECK (TYPE_EXPERIENCE in ('Colorimétrique','Opacimétrique')), 
+   CONSTRAINT check_etat_exp CHECK (TYPE_PLAQUE in ('en cours', 'a programmer', 'effectuée', 'validée', 'ratée'))
 );
 
     
