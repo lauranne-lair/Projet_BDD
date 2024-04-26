@@ -195,7 +195,8 @@ create table EXPERIENCE
    CONSTRAINT check_duree CHECK (DUREE_EXPERIENCE > 0 ),
    CONSTRAINT check_biais3 CHECK (VALEUR_BIAIS_A3 BETWEEN 0.0 AND 1.0 ),
    CONSTRAINT check_biais1 CHECK (VALEUR_BIAIS_A1 > 0.0 ),
-   CONSTRAINT check_biais2 CHECK (VALEUR_BIAIS_A2 > 0.0 )
+   CONSTRAINT check_biais2 CHECK (VALEUR_BIAIS_A2 > 0.0 ), 
+   CONSTRAINT check_experience CHECK (TYPE_PLAQUE in ('Colorimétrique','Opacimétrique'))
 );
 
     
