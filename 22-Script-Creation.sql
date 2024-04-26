@@ -197,7 +197,7 @@ create table EXPERIENCE
    CONSTRAINT check_biais1 CHECK (VALEUR_BIAIS_A1 > 0.0 ),
    CONSTRAINT check_biais2 CHECK (VALEUR_BIAIS_A2 > 0.0 ), 
    CONSTRAINT check_type_exp CHECK (TYPE_EXPERIENCE in ('Colorimétrique','Opacimétrique')), 
-   CONSTRAINT check_etat_exp CHECK (TYPE_PLAQUE in ('en cours', 'a programmer', 'effectuée', 'validée', 'ratée')),
+   CONSTRAINT check_etat_exp CHECK (ETAT_EXPERIENCE in ('en cours', 'à programmer', 'effectuée', 'validée', 'ratée')),
    CONSTRAINT check_prio CHECK (PRIORITE_EXPERIENCE BETWEEN 1 AND 5)
 );
 
@@ -461,11 +461,6 @@ alter table GROUPESLOT
 alter table GROUPESLOT
    add constraint FK_GROUPESL_REGROUPER_EXPERIEN foreign key (ID_EXPERIENCE)
       references EXPERIENCE (ID_EXPERIENCE);
-      
-
-ALTER TABLE GROUPESLOT
-    ADD CONSTRAINT FK_GROUPESLOT_PLAQUE FOREIGN KEY (ID_PLAQUE)
-        REFERENCES PLAQUE (ID_PLAQUE);
 
 alter table LOT
    add constraint FK_LOT_STOCKER_STOCK foreign key (ID_STOCK)
@@ -482,10 +477,6 @@ alter table SLOT
 /*ALTER TABLE SLOT
     ADD CONSTRAINT FK_SLOT_PLAQUE FOREIGN KEY (ID_PLAQUE)
         REFERENCES PLAQUE (ID_PLAQUE);*/
-        
-ALTER TABLE SLOT
-    ADD CONSTRAINT FK_SLOT_GROUPESLOT FOREIGN KEY (ID_GROUPE)
-        REFERENCES GROUPESLOT (ID_GROUPE);
 
 alter table TECHNICIEN
    add constraint FK_TECHNICI_APPARTENI_EQUIPE foreign key (ID_EQUIPE)
