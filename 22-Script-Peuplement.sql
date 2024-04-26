@@ -283,7 +283,6 @@ BEGIN
                     ELSE 'ratée'
                     END;
 
-
         -- Générer une durée d'expérience aléatoire entre 1 et 10 jours
         duree_experience := TRUNC(DBMS_RANDOM.VALUE(1, 10));
 

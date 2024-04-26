@@ -456,8 +456,6 @@ BEGIN
 END;
 /
 
-
-
 -- EXPERIENCE
 --liste d'attente 
 --ok
@@ -480,10 +478,6 @@ BEGIN
 END;
 /
 --Triger d'automatisation pour les expériences :
-/*Quand une epérience est lancée par un chercheur (insert), le tehcnicien update son statut et le groupe de slot ainsi que les slots se remplisse automatiquement
-Appareil fait update sur le slot qui va faire un update sur le groupe de slots qui va faire un update sur l'expérience (statut = valide ou pas ?) 
-donc on doit pas faire les procédures de peuplement des groupes de slots et des slots
-*/
 -- ok
 CREATE OR REPLACE TRIGGER T_lancement_experience
 AFTER INSERT ON EXPERIENCE
@@ -622,7 +616,7 @@ BEGIN
 END;
 /
 
--- Trigger pourrespecter les règle imposé sur les valeurs entre les biais 
+-- Trigger pour respecter les règles imposées sur les valeurs entre les biais 
 --ok
 CREATE OR REPLACE TRIGGER Acceptation_biais
 BEFORE INSERT OR UPDATE OF VALEUR_BIAIS_A1, VALEUR_BIAIS_A2, VALEUR_BIAIS_A3, ECART_TYPE_EXPERIENCE ON Experience
@@ -684,7 +678,6 @@ BEGIN
     INSERT INTO LISTEATTENTE (ID_EXPERIENCE, NB_EXP_ATTENTE)
     VALUES (v_experience_id, 1);
 
-    -- Commit pour valider les changements
     COMMIT;
 EXCEPTION
     -- Gérer les exceptions
