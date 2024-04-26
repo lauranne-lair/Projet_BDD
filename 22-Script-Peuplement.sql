@@ -46,26 +46,38 @@ exec P_stock;
 
 --LOT --------------------------------------------------------------------------
 -- Cette procédure permet de créer 2 lots dans le stock 1 
-CREATE OR REPLACE PROCEDURE peupler_table_lot AS
-    v_id_stock NUMBER;
-BEGIN
-    FOR i IN 1..10 LOOP -- Changer 10 au nombre de lignes que vous souhaitez insérer
-        SELECT ID_STOCK INTO v_id_stock FROM STOCK WHERE ROWNUM = 1; -- Sélectionner une valeur existante pour ID_STOCK
-        INSERT INTO LOT (ID_LOT, ID_STOCK, DATE_LIVRAISON_LOT, NB_PLAQUE, TYPE_PLAQUE_LOT)
-        VALUES (LLAIR.SEQ_ID_LOT.NEXTVAL, v_id_stock, SYSDATE, 80, CASE FLOOR(DBMS_RANDOM.VALUE(1, 2))
-                                                                        WHEN 1 THEN 96
-                                                                        ELSE 384
-                                                                     END);
-    END LOOP;
-    COMMIT; -- Valider les changements
-EXCEPTION
-    WHEN OTHERS THEN
-        ROLLBACK; -- En cas d'erreur, annuler les changements
-        RAISE; -- Propager l'exception pour la gestion externe
-END peupler_table_lot;
-/
-exec peupler_table_lot;
+--CREATE OR REPLACE PROCEDURE peupler_table_lot AS
+--    v_id_stock NUMBER;
+--BEGIN
+--    FOR i IN 1..10 LOOP -- Changer 10 au nombre de lignes que vous souhaitez insérer
+--        SELECT ID_STOCK INTO v_id_stock FROM STOCK WHERE ROWNUM = 1; -- Sélectionner une valeur existante pour ID_STOCK
+--        INSERT INTO LOT (ID_LOT, ID_STOCK, DATE_LIVRAISON_LOT, NB_PLAQUE, TYPE_PLAQUE_LOT)
+--        VALUES (LLAIR.SEQ_ID_LOT.NEXTVAL, v_id_stock, SYSDATE, 80, CASE FLOOR(DBMS_RANDOM.VALUE(1, 2))
+--                                                                        WHEN 1 THEN 96
+--                                                                        ELSE 384
+--                                                                     END);
+--    END LOOP;
+--    COMMIT; -- Valider les changements
+--EXCEPTION
+--    WHEN OTHERS THEN
+--        ROLLBACK; -- En cas d'erreur, annuler les changements
+--        RAISE; -- Propager l'exception pour la gestion externe
+--END peupler_table_lot;
+--/
+--exec peupler_table_lot;
 
+CREATE OR REPLACE PROCEDURE peupler_table_lot AS 
+
+BEGIN 
+    INSERT INTO LOT (ID_STOCK, DATE_LIVRAISON_LOT, NB_PLAQUE, TYPE_PLAQUE_LOT)
+    VALUES (1, SYSDATE, 80,96);
+    INSERT INTO LOT (ID_STOCK, DATE_LIVRAISON_LOT, NB_PLAQUE, TYPE_PLAQUE_LOT)
+    VALUES (1, SYSDATE, 80,96) ;
+END ;
+/ 
+exec peupler_table_lot; 
+    
+    
 --------------------------------------------------------------------------------
 
 --PLAQUE

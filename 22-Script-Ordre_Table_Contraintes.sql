@@ -355,41 +355,59 @@ END;
 
 --LOT --
 -- Trigger d'automatisation qui met à jour le stock suite à l'ajout d'un lot à la BDD   
+--CREATE OR REPLACE TRIGGER T_arrivee_lot
+--AFTER INSERT ON LOT
+--FOR EACH ROW
+--DECLARE
+--    v_quantite_stock PLS_INTEGER := 0;
+--BEGIN
+--    IF :NEW.TYPE_PLAQUE_LOT = 96 THEN
+--        SELECT QUANTITE_P96 INTO v_quantite_stock
+--        FROM STOCK
+--        WHERE ID_STOCK = :NEW.ID_STOCK;
+--
+--        IF v_quantite_stock IS NULL OR v_quantite_stock = 0 THEN
+--            RAISE_APPLICATION_ERROR(-20001, 'Le stock sélectionné ne contient pas de plaques 96 slots.');
+--        ELSE
+--            UPDATE STOCK
+--            SET QUANTITE_P96 = QUANTITE_P96 + :NEW.NB_PLAQUE
+--            WHERE ID_STOCK = :NEW.ID_STOCK;
+--        END IF;
+--    ELSIF :NEW.TYPE_PLAQUE_LOT = 384 THEN
+--        SELECT QUANTITE_P384 INTO v_quantite_stock
+--        FROM STOCK
+--        WHERE ID_STOCK = :NEW.ID_STOCK;
+--
+--        -- Initialiser v_quantite_stock à zéro avant la requête SELECT
+--        v_quantite_stock := 0;
+--
+--        IF v_quantite_stock IS NULL OR v_quantite_stock = 0 THEN
+--            RAISE_APPLICATION_ERROR(-20002, 'Le stock sélectionné ne contient pas de plaques 384 slots.');
+--        ELSE
+--            UPDATE STOCK
+--            SET QUANTITE_P384 = QUANTITE_P384 + :NEW.NB_PLAQUE
+--            WHERE ID_STOCK = :NEW.ID_STOCK;
+--        END IF;
+--    ELSE
+--        RAISE_APPLICATION_ERROR(-20003, 'Le type de plaque du lot ajouté est invalide.');
+--    END IF;
+--END;
+--/
+
 CREATE OR REPLACE TRIGGER T_arrivee_lot
 AFTER INSERT ON LOT
 FOR EACH ROW
-DECLARE
-    v_quantite_stock PLS_INTEGER := 0;
 BEGIN
     IF :NEW.TYPE_PLAQUE_LOT = 96 THEN
-        SELECT QUANTITE_P96 INTO v_quantite_stock
-        FROM STOCK
+        UPDATE STOCK
+        SET QUANTITE_P96 = QUANTITE_P96 + 80 
         WHERE ID_STOCK = :NEW.ID_STOCK;
-
-        IF v_quantite_stock IS NULL OR v_quantite_stock = 0 THEN
-            RAISE_APPLICATION_ERROR(-20001, 'Le stock sélectionné ne contient pas de plaques 96 slots.');
-        ELSE
-            UPDATE STOCK
-            SET QUANTITE_P96 = QUANTITE_P96 + :NEW.NB_PLAQUE
-            WHERE ID_STOCK = :NEW.ID_STOCK;
-        END IF;
     ELSIF :NEW.TYPE_PLAQUE_LOT = 384 THEN
-        SELECT QUANTITE_P384 INTO v_quantite_stock
-        FROM STOCK
+        UPDATE STOCK
+        SET QUANTITE_P384 = QUANTITE_P384 + 80
         WHERE ID_STOCK = :NEW.ID_STOCK;
-
-        -- Initialiser v_quantite_stock à zéro avant la requête SELECT
-        v_quantite_stock := 0;
-
-        IF v_quantite_stock IS NULL OR v_quantite_stock = 0 THEN
-            RAISE_APPLICATION_ERROR(-20002, 'Le stock sélectionné ne contient pas de plaques 384 slots.');
-        ELSE
-            UPDATE STOCK
-            SET QUANTITE_P384 = QUANTITE_P384 + :NEW.NB_PLAQUE
-            WHERE ID_STOCK = :NEW.ID_STOCK;
-        END IF;
-    ELSE
-        RAISE_APPLICATION_ERROR(-20003, 'Le type de plaque du lot ajouté est invalide.');
+    ELSE 
+        RAISE_APPLICATION_ERROR(-20001, 'Erreur stockage nouveau lot ');
     END IF;
 END;
 /
