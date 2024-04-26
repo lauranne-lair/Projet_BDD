@@ -245,4 +245,12 @@ P_Lot();
 end; 
 /
 
+INSERT INTO stock (id_stock, quantite_p384, quantite_p96, vol_dernier_tri_p384, vol_dernier_tri_p96)VALUES (1,0,0,0,0);
+    
+ALTER TRIGGER T_arrivee_lot COMPILE;
+
+INSERT INTO lot (id_stock, date_livraison_lot, nb_plaque, type_plaque_lot)
+        VALUES (1, SYSDATE, 80, 96); 
+        
+
 Commit;

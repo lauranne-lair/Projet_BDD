@@ -504,26 +504,24 @@ CREATE OR REPLACE TRIGGER T_arrivee_lot
 AFTER INSERT ON LOT
 FOR EACH ROW
 DECLARE
-    v_quantite_p96 INTEGER;
-    v_quantite_p384 INTEGER;
-    
+    v_quantite_plaque INTEGER;
 BEGIN
     -- Récupérer la quantité de plaques à ajouter au stock
+    v_quantite_plaque := :NEW.NB_PLAQUE;
+
     IF :NEW.TYPE_PLAQUE_LOT = 96 THEN
         UPDATE STOCK
-        SET QUANTITE_P96 = QUANTITE_P96 + 80
+        SET QUANTITE_P96 = QUANTITE_P96 + v_quantite_plaque
         WHERE ID_STOCK = :NEW.ID_STOCK;
     ELSIF :NEW.TYPE_PLAQUE_LOT = 384 THEN
         UPDATE STOCK
-        SET QUANTITE_P384 = QUANTITE_P384 + 80
+        SET QUANTITE_P384 = QUANTITE_P384 + v_quantite_plaque
         WHERE ID_STOCK = :NEW.ID_STOCK;
     END IF;
-EXCEPTION
-    WHEN OTHERS THEN
-        -- En cas d'erreur, afficher un message d'erreur
-        DBMS_OUTPUT.PUT_LINE('Erreur lors de l''ajout des plaques au stock : ' || SQLERRM);
+
 END;
 /
+
 --------------------------------------------------------------------------------
 
 /*==============================================================*/
