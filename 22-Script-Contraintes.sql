@@ -33,6 +33,8 @@ DROP TRIGGER Contrainte_statut_experience;
 DROP TRIGGER T_suppression_plaque;
 DROP TRIGGER T_suppression_appareil;
 
+
+---- CHECK DEJA FAIT 
 CREATE OR REPLACE TRIGGER T_check_type_plaque
 BEFORE INSERT OR UPDATE ON PLAQUE
 FOR EACH ROW
@@ -48,6 +50,7 @@ EXCEPTION
 END;
 /
 
+---- CHECH DEJA FAIT 
 CREATE OR REPLACE TRIGGER T_check_valeur_biais2
 BEFORE INSERT OR UPDATE ON EXPERIENCE
 FOR EACH ROW
@@ -62,6 +65,7 @@ EXCEPTION
         RAISE_APPLICATION_ERROR(-20001, 'La valeur de biais A2 doit être supérieure ou égale à la valeur de biais A1');
 END;
 /
+
 
 -- Trigger nombre de slots par plaque : Erreur si le nombre de slots par plaque n'est pas équivalent 
 CREATE OR REPLACE TRIGGER T_check_nb_slots_groupe
