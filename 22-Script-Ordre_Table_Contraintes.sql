@@ -42,21 +42,6 @@ DROP TRIGGER Acceptation_biais;
 /*========================================*/
 --              TRIGGER DE CHECK
 /*========================================*/
-
-CREATE OR REPLACE TRIGGER T_type_plaque
-BEFORE INSERT OR UPDATE ON PLAQUE
-FOR EACH ROW
-DECLARE
-    invalid_type_plaque EXCEPTION;
-BEGIN
-    IF :NEW.TYPE_PLAQUE NOT IN (96, 384) THEN
-        RAISE invalid_type_plaque;
-    END IF;
-EXCEPTION
-    WHEN invalid_type_plaque THEN
-        RAISE_APPLICATION_ERROR(-20000, 'Le type de plaque doit être 96 ou 384');
-END;
-/
 CREATE OR REPLACE TRIGGER T_valeur_biais2
 BEFORE INSERT OR UPDATE ON EXPERIENCE
 FOR EACH ROW
@@ -322,9 +307,9 @@ BEGIN
     IF v_nb_resultats_refuses = 0 THEN
         UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'validée' WHERE ID_EXPERIENCE = v_id_experience;
     ELSIF v_nb_resultats_refuses / v_nb_resultats_totaux > 0.3 THEN
-        UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'refusée' WHERE ID_EXPERIENCE = v_id_experience;
+        UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'ratéé' WHERE ID_EXPERIENCE = v_id_experience;
     ELSE
-        UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'à vérifier' WHERE ID_EXPERIENCE = v_id_experience;
+        UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'à vérifier' WHERE ID_EXPERIENCE = v_id_experience; 
     END IF;
 END;
 /
@@ -341,7 +326,7 @@ DECLARE
   v_nb_slots_necessaires NUMBER;
 BEGIN
   -- Vérifier que tous les groupes de slots nécessaires ont été validés
-  SELECT COUNT(*), COUNT(CASE WHEN g.VALIDITE_GROUPE = 'Validé' THEN 1 END)
+  SELECT COUNT(*), COUNT(CASE WHEN g.VALIDITE_GROUPE = 'validée' THEN 1 END)
   INTO v_nb_groupes_necessaires, v_nb_groupes_valides
   FROM GROUPESLOT g
   JOIN EXPERIENCE e ON g.ID_EXPERIENCE = e.ID_EXPERIENCE
@@ -352,7 +337,7 @@ BEGIN
   END IF;
 
   -- Vérifier que tous les slots nécessaires ont été validés
-  SELECT COUNT(*), COUNT(CASE WHEN s.VALIDE = 'Validé' THEN 1 END)
+  SELECT COUNT(*), COUNT(CASE WHEN s.VALIDE = 'validée' THEN 1 END)
   INTO v_nb_slots_necessaires, v_nb_slots_valides
   FROM SLOT s
   JOIN GROUPESLOT g ON s.ID_GROUPE = g.ID_GROUPE
@@ -364,13 +349,12 @@ BEGIN
   END IF;
 
   -- Si tous les groupes de slots et slots nécessaires ont été validés, mettre à jour l'état de l'expérience en conséquence
-  UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'Validée' WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
+  UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'validée' WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE;
 END;
 /
 
 --LOT --
 -- Trigger d'automatisation qui met à jour le stock suite à l'ajout d'un lot à la BDD   
--- a debeug--
 CREATE OR REPLACE TRIGGER T_arrivee_lot
 AFTER INSERT ON LOT
 FOR EACH ROW
