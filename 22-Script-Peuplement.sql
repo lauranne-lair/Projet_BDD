@@ -73,7 +73,7 @@ BEGIN
     INSERT INTO LOT (ID_STOCK, DATE_LIVRAISON_LOT, NB_PLAQUE, TYPE_PLAQUE_LOT)
     VALUES (1, SYSDATE, 80,96);
     INSERT INTO LOT (ID_STOCK, DATE_LIVRAISON_LOT, NB_PLAQUE, TYPE_PLAQUE_LOT)
-    VALUES (1, SYSDATE, 80,96) ;
+    VALUES (1, SYSDATE, 80,384) ;
 END ;
 / 
 exec peupler_table_lot; 
@@ -393,7 +393,7 @@ BEGIN
 
   FOR i IN 1..10 LOOP -- Insérer 10 enregistrements, vous pouvez ajuster ce nombre
     INSERT INTO APPAREIL (ID_APPAREIL, ID_LISTE, ETAT_APPAREIL, POSITION_APPAREIL)
-    VALUES (v_next_id_appareil, 1, 'Disponible', v_next_id_appareil); -- Vous pouvez ajuster les valeurs ici
+    VALUES (v_next_id_appareil, 1, 'disponible', v_next_id_appareil); -- Vous pouvez ajuster les valeurs ici
 
     v_next_id_appareil := v_next_id_appareil + 1;
   END LOOP;
@@ -401,7 +401,6 @@ BEGIN
 END PEUPLEMENT_APPAREIL;
 /
 EXEC PEUPLEMENT_APPAREIL;
-
 
 
 
