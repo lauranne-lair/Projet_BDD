@@ -532,6 +532,9 @@ END;
 /
 
 
+
+
+
 // CONTRAINTE SUR LE PRIX DE L'EXPERIENCE
 --ok
 CREATE OR REPLACE TRIGGER T_prix_experience
@@ -540,99 +543,30 @@ FOR EACH ROW
 DECLARE
     v_nb_exp_en_attente NUMBER;
     v_nb_exp_doublees NUMBER;
-    v_coeff_prix_prio NUMBER; 
+    v_coeff_prix_prio NUMBER := 1; -- Initialisez le coefficient à 1 par défaut
 BEGIN
     SELECT COUNT(*) INTO v_nb_exp_en_attente FROM EXPERIENCE WHERE ETAT_EXPERIENCE = 'en cours';
     SELECT COUNT(*) INTO v_nb_exp_doublees FROM EXPERIENCE WHERE ETAT_EXPERIENCE = 'en cours' AND PRIORITE_EXPERIENCE > :NEW.PRIORITE_EXPERIENCE;
-    IF :NEW.PRIORITE_EXPERIENCE > 1 THEN
-        v_coeff_prix_prio := (v_nb_exp_en_attente + v_nb_exp_doublees) / v_nb_exp_en_attente;
-    ELSE
-        v_coeff_prix_prio := 1;
+
+    -- Vérifiez si v_nb_exp_en_attente est différent de zéro avant de calculer le coefficient
+    IF v_nb_exp_en_attente <> 0 THEN
+        IF :NEW.PRIORITE_EXPERIENCE > 1 THEN
+            v_coeff_prix_prio := (v_nb_exp_en_attente + v_nb_exp_doublees) / v_nb_exp_en_attente;
+        END IF;
     END IF;
+
     :NEW.COEFF_PRIX_PRIO_EXPERIENCE := v_coeff_prix_prio;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        -- Gérer l'exception si aucune donnée n'est trouvée
+        :NEW.COEFF_PRIX_PRIO_EXPERIENCE := 1; -- Affecter une valeur par défaut
+    WHEN OTHERS THEN
+        -- Gérer toutes les autres exceptions
+        :NEW.COEFF_PRIX_PRIO_EXPERIENCE := 1; -- Affecter une valeur par défaut
 END;
 /
 
---Vérifie si le produit du nombre de renouvellements d'expérience par la valeur du biais A3  est inférieur à la valeur du biais A3. 
---En fonction du résultat, il met à jour l'état de l'expérience  en 'Acceptée' ou 'Refusée'.   
---ok
-CREATE OR REPLACE TRIGGER Contrainte_nb_releves_photo
-BEFORE INSERT OR UPDATE ON Experience
-FOR EACH ROW
-DECLARE
-    d NUMBER;
-    f NUMBER;
-    a3 NUMBER;
-    n NUMBER;
-    rejected_count NUMBER;
-    accepted_count NUMBER;
-    mean NUMBER;
-    stddev NUMBER;
-    result NUMBER;
-BEGIN
-    -- Retrieve the values of d, f, and a3 from the current row
-    d := :NEW.DUREE_EXPERIENCE;
-    f := :NEW.FREQUENCE_EXPERIENCE;
-    a3 := :NEW.VALEUR_BIAIS_A3;
 
-    -- Calculate the total number of photometric results
-    n := ROUND(d / f);
-
-    -- Calculate the mean and standard deviation of the photometric results
-    SELECT AVG(result), STDDEV(result)
-    INTO mean, stddev
-    FROM (
-        SELECT result
-        FROM (
-            SELECT :NEW.ID_EXPERIENCE id_experience,
-                   DEB_EXPERIENCE + (ROW_NUMBER() OVER (ORDER BY DEB_EXPERIENCE) - 1) * (:NEW.DUREE_EXPERIENCE / :NEW.FREQUENCE_EXPERIENCE) / (24 * 60) date_resultat,
-                   CASE
-                       WHEN TYPE_EXPERIENCE = 'Cinétique' THEN
-                           MOYENNE_EXPERIENCE + VALEUR_BIAIS_A1 * (:NEW.DUREE_EXPERIENCE - (ROW_NUMBER() OVER (ORDER BY DEB_EXPERIENCE) - 1) * (:NEW.DUREE_EXPERIENCE / :NEW.FREQUENCE_EXPERIENCE)) + VALEUR_BIAIS_A2 * POWER((:NEW.DUREE_EXPERIENCE - (ROW_NUMBER() OVER (ORDER BY DEB_EXPERIENCE) - 1) * (:NEW.DUREE_EXPERIENCE / :NEW.FREQUENCE_EXPERIENCE)), 2)
-                       ELSE
-                           MOYENNE_EXPERIENCE
-                   END result
-            FROM Experience
-            WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE
-            ORDER BY DEB_EXPERIENCE
-        )
-        WHERE ROWNUM <= n
-    );
-
-    -- Calculate the number of accepted and rejected photometric results
-    SELECT COUNT(CASE
-                WHEN result BETWEEN mean - stddev AND mean + stddev THEN 1
-              END) accepted_count,
-           COUNT(CASE
-                WHEN result NOT BETWEEN mean - stddev AND mean + stddev THEN 1
-              END) rejected_count
-    INTO accepted_count, rejected_count
-    FROM (
-        SELECT result
-        FROM (
-            SELECT :NEW.ID_EXPERIENCE id_experience,
-                   DEB_EXPERIENCE + (ROW_NUMBER() OVER (ORDER BY DEB_EXPERIENCE) - 1) * (:NEW.DUREE_EXPERIENCE / :NEW.FREQUENCE_EXPERIENCE) / (24 * 60) date_resultat,
-                   CASE
-                       WHEN TYPE_EXPERIENCE = 'Cinétique' THEN
-                           MOYENNE_EXPERIENCE + VALEUR_BIAIS_A1 * (:NEW.DUREE_EXPERIENCE - (ROW_NUMBER() OVER (ORDER BY DEB_EXPERIENCE) - 1) * (:NEW.DUREE_EXPERIENCE / :NEW.FREQUENCE_EXPERIENCE)) + VALEUR_BIAIS_A2 * POWER((:NEW.DUREE_EXPERIENCE - (ROW_NUMBER() OVER (ORDER BY DEB_EXPERIENCE) - 1) * (:NEW.DUREE_EXPERIENCE / :NEW.FREQUENCE_EXPERIENCE)), 2)
-                       ELSE
-                           MOYENNE_EXPERIENCE
-                   END result
-            FROM Experience
-            WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE
-            ORDER BY DEB_EXPERIENCE
-        )
-        WHERE ROWNUM <= n
-    );
-
-    -- Check if the number of rejected results is less than a3N
-    IF rejected_count < a3 * n THEN
-        :NEW.ETAT_EXPERIENCE := 'Acceptée';
-    ELSE
-        :NEW.ETAT_EXPERIENCE := 'Refusée';
-    END IF;
-END;
-/
 
 -- Trigger pour respecter les règles imposées sur les valeurs entre les biais 
 --ok
@@ -676,7 +610,84 @@ BEGIN
         RAISE_APPLICATION_ERROR(-20001, 'Valeur de fréquence invalide: ' || p_result);
     END IF;
 END;
-/
+/ 
+
+
+--Vérifie si le produit du nombre de renouvellements d'expérience par la valeur du biais A3  est inférieur à la valeur du biais A3. 
+--En fonction du résultat, il met à jour l'état de l'expérience  en 'Acceptée' ou 'Refusée'.   
+--ok
+/*
+CREATE OR REPLACE TRIGGER Contrainte_nb_releves_photo
+BEFORE INSERT OR UPDATE ON EXPERIENCE
+FOR EACH ROW
+DECLARE
+    d NUMBER;
+    f NUMBER;
+    a3 NUMBER;
+    n NUMBER;
+    rejected_count NUMBER := 0; -- Initialise les compteurs à zéro
+    accepted_count NUMBER := 0;
+    mean NUMBER := 0;
+    stddev NUMBER := 0;
+    result NUMBER := 0;
+BEGIN
+    -- Retrieve the values of d, f, and a3 from the current row
+    d := :NEW.DUREE_EXPERIENCE;
+    f := :NEW.FREQUENCE_EXPERIENCE;
+    a3 := :NEW.VALEUR_BIAIS_A3;
+
+    -- Calculate the total number of photometric results
+    n := ROUND(d / f);
+
+    -- Calculate the mean and standard deviation of the photometric results
+    SELECT AVG(result), STDDEV(result)
+    INTO mean, stddev
+    FROM (
+        SELECT CASE
+                   WHEN TYPE_EXPERIENCE = 'Cinétique' THEN
+                       MOYENNE_EXPERIENCE + VALEUR_BIAIS_A1 * (:NEW.DUREE_EXPERIENCE - (ROW_NUMBER() OVER (ORDER BY DEB_EXPERIENCE) - 1) * (:NEW.DUREE_EXPERIENCE / :NEW.FREQUENCE_EXPERIENCE)) + VALEUR_BIAIS_A2 * POWER((:NEW.DUREE_EXPERIENCE - (ROW_NUMBER() OVER (ORDER BY DEB_EXPERIENCE) - 1) * (:NEW.DUREE_EXPERIENCE / :NEW.FREQUENCE_EXPERIENCE)), 2)
+                   ELSE
+                       MOYENNE_EXPERIENCE
+               END AS result
+        FROM EXPERIENCE
+        WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE
+        ORDER BY DEB_EXPERIENCE
+    )
+    WHERE ROWNUM <= n;
+
+    -- Calculate the number of accepted and rejected photometric results
+    SELECT COUNT(CASE
+                    WHEN result BETWEEN mean - stddev AND mean + stddev THEN 1
+                END),
+           COUNT(CASE
+                    WHEN result NOT BETWEEN mean - stddev AND mean + stddev THEN 1
+                END)
+    INTO accepted_count, rejected_count
+    FROM (
+        SELECT CASE
+                   WHEN TYPE_EXPERIENCE = 'Cinétique' THEN
+                       MOYENNE_EXPERIENCE + VALEUR_BIAIS_A1 * (:NEW.DUREE_EXPERIENCE - (ROW_NUMBER() OVER (ORDER BY DEB_EXPERIENCE) - 1) * (:NEW.DUREE_EXPERIENCE / :NEW.FREQUENCE_EXPERIENCE)) + VALEUR_BIAIS_A2 * POWER((:NEW.DUREE_EXPERIENCE - (ROW_NUMBER() OVER (ORDER BY DEB_EXPERIENCE) - 1) * (:NEW.DUREE_EXPERIENCE / :NEW.FREQUENCE_EXPERIENCE)), 2)
+                   ELSE
+                       MOYENNE_EXPERIENCE
+               END AS result
+        FROM EXPERIENCE
+        WHERE ID_EXPERIENCE = :NEW.ID_EXPERIENCE
+        ORDER BY DEB_EXPERIENCE
+    )
+    WHERE ROWNUM <= n;
+
+    -- Check if the number of rejected results is less than a3N
+    IF rejected_count < a3 * n THEN
+        :NEW.ETAT_EXPERIENCE := 'Acceptée';
+    ELSE
+        :NEW.ETAT_EXPERIENCE := 'Refusée';
+    END IF;
+END;
+/*/
+
+
+
+
 
 /*CREATE OR REPLACE TRIGGER refus_plaque_trigger
 AFTER INSERT ON T_refus_plaque
@@ -834,7 +845,6 @@ BEGIN
   END IF;
 END;
 /
-
 */
 
 

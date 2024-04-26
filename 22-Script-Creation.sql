@@ -200,7 +200,7 @@ create table EXPERIENCE
    CONSTRAINT check_prio CHECK (PRIORITE_EXPERIENCE BETWEEN 1 AND 5)
 );
 
-ALTER TABLE EXPERIENCE ADD CONSTRAINT check_etat_exp CHECK (ETAT_EXPERIENCE IN ('en cours', 'a programmer', 'effectuee', 'validee', 'ratee'));
+--ALTER TABLE EXPERIENCE ADD CONSTRAINT check_etat_exp CHECK (ETAT_EXPERIENCE IN ('en cours', 'a programmer', 'effectuee', 'validee', 'ratee'));
     
 /*==============================================================*/
 /* Index : REALISER_FK                                          */
@@ -503,6 +503,7 @@ REFERENCES appareil(ID_APPAREIL);
 CREATE SEQUENCE seq_id_acheter START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE seq_id_appareil START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE seq_id_chercheur START WITH 1 INCREMENT BY 1;
+ALTER SEQUENCE  seq_id_chercheur MINVALUE 0;
 CREATE SEQUENCE seq_id_equipe START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE seq_id_experience START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE seq_id_facture START WITH 1 INCREMENT BY 1;
