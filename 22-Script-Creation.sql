@@ -197,7 +197,8 @@ create table EXPERIENCE
    CONSTRAINT check_biais1 CHECK (VALEUR_BIAIS_A1 > 0.0 ),
    CONSTRAINT check_biais2 CHECK (VALEUR_BIAIS_A2 > 0.0 ), 
    CONSTRAINT check_type_exp CHECK (TYPE_EXPERIENCE in ('Colorimétrique','Opacimétrique')), 
-   CONSTRAINT check_etat_exp CHECK (TYPE_PLAQUE in ('en cours', 'a programmer', 'effectuée', 'validée', 'ratée'))
+   CONSTRAINT check_etat_exp CHECK (TYPE_PLAQUE in ('en cours', 'a programmer', 'effectuée', 'validée', 'ratée')),
+   CONSTRAINT check_prio CHECK (PRIORITE_EXPERIENCE BETWEEN 1 AND 5)
 );
 
     
