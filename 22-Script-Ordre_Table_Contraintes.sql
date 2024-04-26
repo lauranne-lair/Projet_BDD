@@ -403,11 +403,11 @@ BEFORE INSERT ON FACTURE
 FOR EACH ROW
 BEGIN
   IF :NEW.MONTANT_FACTURE IS NULL THEN
-    RAISE_APPLICATION_ERROR(-20004, 'Le montant de la facture ne peut pas être nul');
+    RAISE_APPLICATION_ERROR(-20004, 'Le montant de la facture ne peut pas être nul.');
   END IF;
 
   IF :NEW.DATE_FACTURE IS NULL THEN
-    RAISE_APPLICATION_ERROR(-20002, 'La date de facturation ne peut pas être nulle');
+    RAISE_APPLICATION_ERROR(-20002, 'La date de facturation ne peut pas être nulle.');
   END IF;
 
   IF TO_CHAR(:NEW.DATE_FACTURE, 'DD') != '01' THEN
@@ -530,8 +530,8 @@ DECLARE
     v_nb_exp_doublees NUMBER;
     v_coeff_prix_prio NUMBER; 
 BEGIN
-    SELECT COUNT(*) INTO v_nb_exp_en_attente FROM EXPERIENCE WHERE ETAT_EXPERIENCE = 'en attente';
-    SELECT COUNT(*) INTO v_nb_exp_doublees FROM EXPERIENCE WHERE ETAT_EXPERIENCE = 'en attente' AND PRIORITE_EXPERIENCE > :NEW.PRIORITE_EXPERIENCE;
+    SELECT COUNT(*) INTO v_nb_exp_en_attente FROM EXPERIENCE WHERE ETAT_EXPERIENCE = 'en cours';
+    SELECT COUNT(*) INTO v_nb_exp_doublees FROM EXPERIENCE WHERE ETAT_EXPERIENCE = 'en cours' AND PRIORITE_EXPERIENCE > :NEW.PRIORITE_EXPERIENCE;
     IF :NEW.PRIORITE_EXPERIENCE > 1 THEN
         v_coeff_prix_prio := (v_nb_exp_en_attente + v_nb_exp_doublees) / v_nb_exp_en_attente;
     ELSE
