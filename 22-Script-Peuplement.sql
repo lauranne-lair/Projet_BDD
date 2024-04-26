@@ -91,13 +91,13 @@ CREATE OR REPLACE PROCEDURE peupler_table_plaques AS
 BEGIN
     FOR i IN 1..10 LOOP -- Changer 10 au nombre de lignes que vous souhaitez insérer
         SELECT ID_LOT INTO v_id_lot FROM LOT WHERE ROWNUM = 1; -- Sélectionner une valeur existante pour ID_LOT
-        v_type_plaque := CASE FLOOR(DBMS_RANDOM.VALUE(1, 2))
+        v_type_plaque := CASE FLOOR(DBMS_RANDOM.VALUE(i, 2))
                             WHEN 1 THEN 96
                             ELSE 384
                          END;
         v_nb_experience_plaque := FLOOR(DBMS_RANDOM.VALUE(1, 100)); -- Remplacer 100 par le nombre maximum pour NB_EXPERIENCE_PLAQUE
-        v_etat_plaque := CASE MOD(i, 3) -- Générer un état aléatoire
-                            WHEN 0 THEN 'Disponible'
+        v_etat_plaque := CASE MOD(i, 2) -- Générer un état aléatoire
+                            WHEN 1 THEN 'Disponible'
                             ELSE 'Utilisée'
                          END;
         INSERT INTO PLAQUE (ID_PLAQUE, ID_LOT, TYPE_PLAQUE, NB_EXPERIENCE_PLAQUE, ETAT_PLAQUE)

@@ -497,71 +497,38 @@ END;
 /
 --Triger d'automatisation pour les expériences :
 -- ok
-CREATE OR REPLACE TRIGGER T_lancement_experience
-AFTER INSERT ON EXPERIENCE
-FOR EACH ROW
-DECLARE
-  v_id_plaque PLAQUE.ID_PLAQUE%TYPE;
-  v_type_plaque PLAQUE.TYPE_PLAQUE%TYPE;
-BEGIN
-  -- Sélectionner une plaque disponible en fonction du type de plaque requis par l'expérience
-  SELECT p.ID_PLAQUE, p.TYPE_PLAQUE
-  INTO v_id_plaque, v_type_plaque
-  FROM PLAQUE p
-  JOIN LOT l ON p.ID_LOT = l.ID_LOT
-  WHERE p.ETAT_PLAQUE = 'Disponible'
-  AND l.TYPE_PLAQUE_LOT = :NEW.TYPE_PLAQUE
-  ORDER BY l.DATE_LIVRAISON_LOT ASC
-  FETCH FIRST 1 ROWS ONLY;
-
-  -- Mettre à jour l'état de la plaque sélectionnée
-  UPDATE PLAQUE SET ETAT_PLAQUE = 'Utilisée' WHERE ID_PLAQUE = v_id_plaque;
-
-  -- Insérer un groupe de slots pour chaque groupe de slots nécessaire pour l'expérience
-  FOR i IN 1..:NEW.NB_GROUPE_SLOT_EXPERIENCE LOOP
-    INSERT INTO GROUPESLOT (ID_EXPERIENCE, ID_PLAQUE, MOYENNE_GROUPE, ECART_TYPE_GROUPE, VALIDITE_GROUPE)
-    VALUES (:NEW.ID_EXPERIENCE, v_id_plaque, NULL, NULL, 'Non validé');
-
-    -- Insérer des slots pour chaque slot nécessaire dans le groupe de slots
-    FOR j IN 1..:NEW.NB_SLOTS_PAR_GROUPE_EXPERIENCE LOOP
-      INSERT INTO SLOT (ID_GROUPE, COULEUR_SLOT, NUMERO_SLOT, POSITION_X_SLOT, POSITION_Y_SLOT, RM_SLOT, RD_SLOT, VM_SLOT, VD_SLOT, BM_SLOT, BD_SLOT, TM_SLOT, TD_SLOT, VALIDE)
-      VALUES (seq_id_groupeslot.CURRVAL, NULL, j, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Non validé');
-    END LOOP;
-  END LOOP;
-END;
-/
-
-
-
-
-
-// CONTRAINTE SUR LE PRIX DE L'EXPERIENCE
---ok
 CREATE OR REPLACE TRIGGER T_LANCEMENT_EXPERIENCE
 BEFORE INSERT ON EXPERIENCE
 FOR EACH ROW
 DECLARE
   v_id_plaque PLAQUE.ID_PLAQUE%TYPE;
   v_type_plaque PLAQUE.TYPE_PLAQUE%TYPE;
+  v_nb_slots_total NUMBER;
+  v_id_groupeslot GROUPESLOT.ID_GROUPE%TYPE; -- Ajouter cette ligne
 BEGIN
   DBMS_OUTPUT.PUT_LINE('Début du déclencheur');
 
-  -- Affichage des valeurs de :NEW.TYPE_PLAQUE
-  DBMS_OUTPUT.PUT_LINE('TYPE_PLAQUE = ' || :NEW.TYPE_PLAQUE);
+  -- Vérifier la disponibilité de la plaque et sélectionner la plaque appropriée
+  IF :NEW.NB_GROUPE_SLOT_EXPERIENCE * :NEW.NB_SLOTS_PAR_GROUPE_EXPERIENCE <= 96 THEN
+    SELECT ID_PLAQUE, TYPE_PLAQUE INTO v_id_plaque, v_type_plaque
+    FROM PLAQUE p
+    JOIN LOT l ON p.ID_LOT = l.ID_LOT
+    WHERE p.ETAT_PLAQUE = 'Disponible'
+    AND l.TYPE_PLAQUE_LOT = 96
+    ORDER BY l.DATE_LIVRAISON_LOT ASC
+    FETCH FIRST 1 ROWS ONLY;
+  ELSE
+    SELECT ID_PLAQUE, TYPE_PLAQUE INTO v_id_plaque, v_type_plaque
+    FROM PLAQUE p
+    JOIN LOT l ON p.ID_LOT = l.ID_LOT
+    WHERE p.ETAT_PLAQUE = 'Disponible'
+    AND l.TYPE_PLAQUE_LOT = 384
+    ORDER BY l.DATE_LIVRAISON_LOT ASC
+    FETCH FIRST 1 ROWS ONLY;
+  END IF;
 
-  -- Sélection des données de la table PLAQUE
-  SELECT p.ID_PLAQUE, p.TYPE_PLAQUE
-  INTO v_id_plaque, v_type_plaque
-  FROM PLAQUE p
-  JOIN LOT l ON p.ID_LOT = l.ID_LOT
-  WHERE p.ETAT_PLAQUE = 'Disponible'
-  AND l.TYPE_PLAQUE_LOT = :NEW.TYPE_PLAQUE
-  ORDER BY l.DATE_LIVRAISON_LOT ASC
-  FETCH FIRST 1 ROWS ONLY;
-
-  -- Affichage des valeurs sélectionnées
-  DBMS_OUTPUT.PUT_LINE('ID_PLAQUE = ' || v_id_plaque);
-  DBMS_OUTPUT.PUT_LINE('TYPE_PLAQUE = ' || v_type_plaque);
+  -- Calculer le nombre total de slots
+  v_nb_slots_total := :NEW.NB_GROUPE_SLOT_EXPERIENCE * :NEW.NB_SLOTS_PAR_GROUPE_EXPERIENCE;
 
   -- Mise à jour du statut de la plaque
   UPDATE PLAQUE SET ETAT_PLAQUE = 'Utilisée' WHERE ID_PLAQUE = v_id_plaque;
@@ -570,13 +537,14 @@ BEGIN
   FOR i IN 1..:NEW.NB_GROUPE_SLOT_EXPERIENCE LOOP
     -- Insertion dans la table GROUPESLOT
     INSERT INTO GROUPESLOT (ID_EXPERIENCE, ID_PLAQUE, MOYENNE_GROUPE, ECART_TYPE_GROUPE, VALIDITE_GROUPE)
-    VALUES (:NEW.ID_EXPERIENCE, v_id_plaque, NULL, NULL, 'Non validé');
+    VALUES (:NEW.ID_EXPERIENCE, v_id_plaque, NULL, NULL, 'Non validé')
+    RETURNING ID_GROUPE INTO v_id_groupeslot;
 
     -- Insertion des slots pour chaque groupe
     FOR j IN 1..:NEW.NB_SLOTS_PAR_GROUPE_EXPERIENCE LOOP
       -- Insertion dans la table SLOT
       INSERT INTO SLOT (ID_GROUPE, COULEUR_SLOT, NUMERO_SLOT, POSITION_X_SLOT, POSITION_Y_SLOT, RM_SLOT, RD_SLOT, VM_SLOT, VD_SLOT, BM_SLOT, BD_SLOT, TM_SLOT, TD_SLOT, VALIDE)
-      VALUES (seq_id_groupeslot.CURRVAL, NULL, j, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Non validé');
+      VALUES (v_id_groupeslot, NULL, j, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Non validé');
     END LOOP;
   END LOOP;
 
@@ -587,6 +555,9 @@ EXCEPTION
     DBMS_OUTPUT.PUT_LINE('Erreur : ' || SQLERRM);
 END;
 /
+
+
+
 
 
 
