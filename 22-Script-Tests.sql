@@ -48,7 +48,7 @@ BEGIN
     SELECT ID_EXPERIENCE INTO val_id_experience FROM EXPERIENCE WHERE ROWNUM = 1;
 
     --Mettre la disponibilité de l’appareil à ‘En panne’
-    UPDATE APPAREIL SET DISPO_APPAREIL = 0 WHERE ID_APPAREIL = val_id_appareil;
+    UPDATE APPAREIL SET ETAT_APPAREIL = 0 WHERE ID_APPAREIL = val_id_appareil;
     
     --Vérification de la mise à jour du statut de l’expérience qui doit être passée à ‘A programmer’
     SELECT ETAT_EXPERIENCE INTO val_statut_experience FROM EXPERIENCE WHERE ID_EXPERIENCE = val_id_experience;
@@ -103,8 +103,6 @@ BEGIN
   ROLLBACK;
 END;
 /
-
-
 
 /*----------------------------------------------------------------------------*\
 --- PROCEDURE DE TEST T_ARRIVEE_LOT ------------------------------------------*\

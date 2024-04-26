@@ -1,20 +1,20 @@
 -- Supprimer tous les déclencheurs de votre liste
-DROP TRIGGER T_check_type_plaque;
+DROP TRIGGER T_type_plaque;
 DROP TRIGGER T_check_valeur_biais2;
-DROP TRIGGER T_check_nb_slots_groupe;
-DROP TRIGGER T_chek_valpos_ACHETER;
-DROP TRIGGER T_chek_valpos_APPAREIL;
-DROP TRIGGER T_chek_valpos_CHERCHEUR;
-DROP TRIGGER T_chek_valpos_EXPERIENCE;
-DROP TRIGGER T_chek_valpos_FACTURE;
-DROP TRIGGER T_chek_valpos_FOURNISSEUR;
-DROP TRIGGER T_chek_valpos_GROUPESLOT;
-DROP TRIGGER T_chek_valpos_LISTEATTENTE;
-DROP TRIGGER T_chek_valpos_LOT;
-DROP TRIGGER T_chek_valpos_PLAQUE;
-DROP TRIGGER T_chek_valpos_SLOT;
-DROP TRIGGER T_chek_valpos_STOCK;
-DROP TRIGGER T_chek_valpos_TECHNICIEN;
+DROP TRIGGER T_nb_slots_groupe;
+DROP TRIGGER T_valpos_ACHETER;
+DROP TRIGGER T_valpos_APPAREIL;
+DROP TRIGGER T_valpos_CHERCHEUR;
+DROP TRIGGER T_valpos_EXPERIENCE;
+DROP TRIGGER T_valpos_FACTURE;
+DROP TRIGGER T_valpos_FOURNISSEUR;
+DROP TRIGGER T_valpos_GROUPESLOT;
+DROP TRIGGER T_valpos_LISTEATTENTE;
+DROP TRIGGER T_valpos_LOT;
+DROP TRIGGER T_valpos_PLAQUE;
+DROP TRIGGER T_valpos_SLOT;
+DROP TRIGGER T_valpos_STOCK;
+DROP TRIGGER T_valpos_TECHNICIEN;
 --Resultat
 DROP TRIGGER T_resultat_experience;
 -- GROUPESLOT--
@@ -35,7 +35,7 @@ DROP TRIGGER T_lancement_experience;
 DROP TRIGGER T_prix_experience;
 DROP TRIGGER Contrainte_nb_releves_photo;
 DROP TRIGGER Acceptation_biais;
-DROP TRIGGER refus_plaque_trigger;
+--DROP TRIGGER refus_plaque_trigger;
 
 
 
@@ -43,7 +43,7 @@ DROP TRIGGER refus_plaque_trigger;
 --              TRIGGER DE CHECK
 /*========================================*/
 
-CREATE OR REPLACE TRIGGER T_check_type_plaque
+CREATE OR REPLACE TRIGGER T_type_plaque
 BEFORE INSERT OR UPDATE ON PLAQUE
 FOR EACH ROW
 DECLARE
@@ -57,7 +57,7 @@ EXCEPTION
         RAISE_APPLICATION_ERROR(-20000, 'Le type de plaque doit être 96 ou 384');
 END;
 /
-CREATE OR REPLACE TRIGGER T_check_valeur_biais2
+CREATE OR REPLACE TRIGGER T_valeur_biais2
 BEFORE INSERT OR UPDATE ON EXPERIENCE
 FOR EACH ROW
 DECLARE
@@ -71,8 +71,9 @@ EXCEPTION
         RAISE_APPLICATION_ERROR(-20001, 'La valeur de biais A2 doit être supérieure ou égale à la valeur de biais A1');
 END;
 /
+
 -- Trigger nombre de slots par plaque : Erreur si le nombre de slots par plaque n'est pas équivalent 
-CREATE OR REPLACE TRIGGER T_check_nb_slots_groupe
+CREATE OR REPLACE TRIGGER T_nb_slots_groupe
 BEFORE INSERT OR UPDATE ON GROUPESLOT
 FOR EACH ROW
 DECLARE
@@ -80,9 +81,9 @@ DECLARE
     v_type_plaque PLAQUE.TYPE_PLAQUE%TYPE;
 BEGIN
     SELECT TYPE_PLAQUE INTO v_type_plaque FROM PLAQUE WHERE ID_PLAQUE = :NEW.ID_PLAQUE;
-    IF v_type_plaque = 96 AND :NEW.NB_SLOTS_PAR_GROUPE_EXPERIENCE NOT IN (1, 2, 3, 4, 6, 8, 12) THEN
+    IF v_type_plaque = 96 AND :NEW.NB_SLOTS NOT IN (1, 2, 3, 4, 6, 8, 12) THEN
         RAISE invalid_nb_slots;
-    ELSIF v_type_plaque = 384 AND :NEW.NB_SLOTS_PAR_GROUPE_EXPERIENCE NOT IN (1, 2, 3, 4, 6, 8, 12, 16, 24) THEN
+    ELSIF v_type_plaque = 384 AND :NEW.NB_SLOTS NOT IN (1, 2, 3, 4, 6, 8, 12, 16, 24) THEN
         RAISE invalid_nb_slots;
     END IF;
 EXCEPTION
@@ -92,7 +93,7 @@ END;
 /
 -- Trigger pour avoir aucun nombre négatif dans les tables 
 -- Table acheter : 
-CREATE OR REPLACE TRIGGER T_chek_valpos_ACHETER
+CREATE OR REPLACE TRIGGER T_valpos_ACHETER
 BEFORE INSERT OR UPDATE ON ACHETER
 FOR EACH ROW
 DECLARE
@@ -107,7 +108,7 @@ EXCEPTION
 END;
 /
 --APPAREIL
-CREATE OR REPLACE TRIGGER T_chek_valpos_APPAREIL
+CREATE OR REPLACE TRIGGER T_valpos_APPAREIL
 BEFORE INSERT OR UPDATE ON APPAREIL
 FOR EACH ROW
 DECLARE
@@ -126,7 +127,7 @@ EXCEPTION
 END;
 /
 --CHERCHEUR 
-CREATE OR REPLACE TRIGGER T_chek_valpos_CHERCHEUR
+CREATE OR REPLACE TRIGGER T_valpos_CHERCHEUR
 BEFORE INSERT OR UPDATE ON CHERCHEUR
 FOR EACH ROW
 DECLARE
@@ -141,7 +142,7 @@ EXCEPTION
 END;
 /
 --EXPERIENCE
-CREATE OR REPLACE TRIGGER T_chek_valpos_EXPERIENCE
+CREATE OR REPLACE TRIGGER T_valpos_EXPERIENCE
 BEFORE INSERT OR UPDATE ON EXPERIENCE
 FOR EACH ROW
 DECLARE
@@ -161,7 +162,7 @@ EXCEPTION
 END;
 /
 --FACTURE
-CREATE OR REPLACE TRIGGER T_chek_valpos_FACTURE
+CREATE OR REPLACE TRIGGER T_valpos_FACTURE
 BEFORE INSERT OR UPDATE ON FACTURE
 FOR EACH ROW
 DECLARE
@@ -176,7 +177,7 @@ EXCEPTION
 END;
 /
 --FOURNISSEUR
-CREATE OR REPLACE TRIGGER T_chek_valpos_FOURNISSEUR
+CREATE OR REPLACE TRIGGER T_valpos_FOURNISSEUR
 BEFORE INSERT OR UPDATE ON FOURNISSEUR
 FOR EACH ROW
 DECLARE
@@ -191,7 +192,7 @@ EXCEPTION
 END;
 /
 --GROUPESLOT
-CREATE OR REPLACE TRIGGER T_chek_valpos_GROUPESLOT
+CREATE OR REPLACE TRIGGER T_valpos_GROUPESLOT
 BEFORE INSERT OR UPDATE ON GROUPESLOT
 FOR EACH ROW
 DECLARE
@@ -207,7 +208,7 @@ EXCEPTION
 END;
 /
 --LISTEATTENTE
-CREATE OR REPLACE TRIGGER T_chek_valpos_LISTEATTENTE
+CREATE OR REPLACE TRIGGER T_valpos_LISTEATTENTE
 BEFORE INSERT OR UPDATE ON LISTEATTENTE
 FOR EACH ROW
 DECLARE
@@ -222,7 +223,7 @@ EXCEPTION
 END;
 /
 --LOT
-CREATE OR REPLACE TRIGGER T_chek_valpos_LOT
+CREATE OR REPLACE TRIGGER T_valpos_LOT
 BEFORE INSERT OR UPDATE ON LOT
 FOR EACH ROW
 DECLARE
@@ -237,7 +238,7 @@ EXCEPTION
 END;
 /
 --PLAQUE
-CREATE OR REPLACE TRIGGER T_chek_valpos_PLAQUE
+CREATE OR REPLACE TRIGGER T_valpos_PLAQUE
 BEFORE INSERT OR UPDATE ON PLAQUE
 FOR EACH ROW
 DECLARE
@@ -252,7 +253,7 @@ EXCEPTION
 END;
 /
 --SLOT
-CREATE OR REPLACE TRIGGER T_chek_valpos_SLOT
+CREATE OR REPLACE TRIGGER T_valpos_SLOT
 BEFORE INSERT OR UPDATE ON SLOT
 FOR EACH ROW
 DECLARE
@@ -270,7 +271,7 @@ EXCEPTION
 END;
 /
 --STOCK
-CREATE OR REPLACE TRIGGER T_chek_valpos_STOCK
+CREATE OR REPLACE TRIGGER T_valpos_STOCK
 BEFORE INSERT OR UPDATE ON STOCK
 FOR EACH ROW
 DECLARE
@@ -286,7 +287,7 @@ EXCEPTION
 END;
 /
 --TECHNICIEN
-CREATE OR REPLACE TRIGGER T_chek_valpos_TECHNICIEN
+CREATE OR REPLACE TRIGGER T_valpos_TECHNICIEN
 BEFORE INSERT OR UPDATE ON TECHNICIEN
 FOR EACH ROW
 DECLARE
@@ -385,7 +386,7 @@ BEGIN
             RAISE_APPLICATION_ERROR(-20001, 'Le stock sélectionné ne contient pas de plaques 96 slots.');
         ELSE
             UPDATE STOCK
-            SET QUANTITE_P96 = QUANTITE_P96 + :NEW.NB_PLAQUES
+            SET QUANTITE_P96 = QUANTITE_P96 + :NEW.NB_PLAQUE
             WHERE ID_STOCK = :NEW.ID_STOCK;
         END IF;
     ELSIF :NEW.TYPE_PLAQUE_LOT = 384 THEN
@@ -400,7 +401,7 @@ BEGIN
             RAISE_APPLICATION_ERROR(-20002, 'Le stock sélectionné ne contient pas de plaques 384 slots.');
         ELSE
             UPDATE STOCK
-            SET QUANTITE_P384 = QUANTITE_P384 + :NEW.NB_PLAQUES
+            SET QUANTITE_P384 = QUANTITE_P384 + :NEW.NB_PLAQUE
             WHERE ID_STOCK = :NEW.ID_STOCK;
         END IF;
     ELSE
@@ -409,33 +410,6 @@ BEGIN
 END;
 /
 
-CREATE OR REPLACE TRIGGER T_stock_plaque
-AFTER INSERT OR DELETE ON LOT
-FOR EACH ROW
-DECLARE
-    v_operation VARCHAR2(1);
-    v_nb_plaques NUMBER;
-BEGIN
-    IF INSERTING THEN
-        v_operation := '+';
-        v_nb_plaques := :NEW.NB_PLAQUES;
-    ELSIF DELETING THEN
-        v_operation := '-';
-        v_nb_plaques := :OLD.NB_PLAQUES;
-    END IF;
-
-    -- Mettre à jour uniquement la quantité de la plaque correspondante dans la table STOCK
-    IF :NEW.TYPE_PLAQUE_LOT = 96 THEN
-        UPDATE STOCK
-        SET QUANTITE_P96 = QUANTITE_P96 + CASE WHEN v_operation = '+' THEN v_nb_plaques ELSE -v_nb_plaques END
-        WHERE ID_STOCK = :NEW.ID_STOCK;
-    ELSIF :NEW.TYPE_PLAQUE_LOT = 384 THEN
-        UPDATE STOCK
-        SET QUANTITE_P384 = QUANTITE_P384 + CASE WHEN v_operation = '+' THEN v_nb_plaques ELSE -v_nb_plaques END
-        WHERE ID_STOCK = :NEW.ID_STOCK;
-    END IF;
-END;
-/
 
 
 -- FACTURE --
@@ -486,18 +460,19 @@ END;
 /
 /*Contrainte sur le changement d'état des expériences lorsque l'appareil est en panne a faire*/
 CREATE OR REPLACE TRIGGER T_panne_app
-AFTER UPDATE OF ETAT_APPAREIL ON APPAREIL
+BEFORE UPDATE OF ETAT_APPAREIL ON APPAREIL
 FOR EACH ROW
-DECLARE
-    v_id_experience EXPERIENCE.ID_EXPERIENCE%TYPE;
 BEGIN
-    IF :OLD.ETAT_APPAREIL = 'disponible' AND :NEW.ETAT_APPAREIL = 'en panne' THEN
-        FOR z IN (SELECT ID_EXPERIENCE FROM EXPERIENCE WHERE ID_APPAREIL = :OLD.ID_APPAREIL AND ETAT_EXPERIENCE = 'à programmer') LOOP
-            UPDATE EXPERIENCE SET ETAT_EXPERIENCE = 'en attente' WHERE ID_EXPERIENCE = z.ID_EXPERIENCE;
-        END LOOP;
+    IF :OLD.ETAT_APPAREIL != 'en panne' AND :NEW.ETAT_APPAREIL = 'en panne' THEN
+        UPDATE EXPERIENCE
+        SET ETAT_EXPERIENCE = 'à programmer'
+        WHERE ID_APPAREIL = :NEW.ID_APPAREIL
+        AND ETAT_EXPERIENCE = 'programmée';
     END IF;
 END;
 /
+
+
 
 -- EXPERIENCE
 --liste d'attente 
@@ -707,33 +682,6 @@ BEGIN
 END;
 /
 
--- Trigger freq observation  ok
-CREATE OR REPLACE FUNCTION Calcul_frequence_observation(
-    p_id_experience IN NUMBER
-) RETURN NUMBER IS
-    d NUMBER;
-    f NUMBER;
-    result NUMBER;
-BEGIN
-    -- Retrieve the values of d and f from the Experience table
-    SELECT DUREE_EXPERIENCE, FREQUENCE_EXPERIENCE
-    INTO d, f
-    FROM Experience
-    WHERE ID_EXPERIENCE = p_id_experience;
-
-    -- Calculate the result as d/f rounded to the nearest integer
-    result := ROUND(d / f);
-
-    -- Check if the result is an integer
-    IF result != TRUNC(result) THEN
-        RAISE_APPLICATION_ERROR(-20001, 'Invalid frequency value: ' || result);
-    END IF;
-
-    -- Return the result
-    RETURN result;
-END;
-/
-
 CREATE OR REPLACE TRIGGER refus_plaque_trigger
 AFTER INSERT ON T_refus_plaque
 FOR EACH ROW
@@ -860,13 +808,5 @@ END;
 
 */
 
-
-
-
-
--- test du trigge au dessus : 
-SELECT STATUS FROM USER_OBJECTS WHERE OBJECT_NAME = 'CALCUL_FREQUENCE_OBSERVATION';
-
-UPDATE Experience SET DUREE_EXPERIENCE = 48 WHERE ID_EXPERIENCE = 1;
 
 
